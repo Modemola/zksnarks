@@ -126,6 +126,14 @@ let proven = zreceipt::verify(&receipt)?;   // amount, recipient, memo, txid
 // then confirm proven.txid is in block proven.height`}</code>
                 </pre>
                 <p className="small" style={{ color: "var(--ink-secondary)" }}>
+                  From a terminal, the <code>unseal</code> command does the same, with <code>--json</code> for scripts and payment systems:
+                </p>
+                <pre>
+                  <code>{`unseal create --key uview1… --txid 3f9c…   # receipts for what you sent or received
+unseal check receipt.txt --address u1…      # verify, and confirm it paid your address
+unseal inspect zr1…                          # read without checking`}</code>
+                </pre>
+                <p className="small" style={{ color: "var(--ink-secondary)" }}>
                   The relay the site uses is three stateless functions over a public lightwalletd server: <code>GET /api/tip</code>,{" "}
                   <code>GET /api/blocks?network=&amp;start=&amp;end=</code> (up to 32 blocks) and <code>POST /api/tx</code>. Deploy your own
                   copy to take this site out of the path entirely.
