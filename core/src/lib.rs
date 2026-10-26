@@ -33,7 +33,8 @@ use zcash_note_encryption::{
     try_note_decryption, try_output_recovery_with_ovk, try_output_recovery_with_pkd_esk, Domain,
 };
 use zcash_primitives::transaction::Transaction;
-use zcash_protocol::consensus::{BlockHeight, BranchId, Network, NetworkType};
+pub use zcash_protocol::consensus::NetworkType;
+use zcash_protocol::consensus::{BlockHeight, BranchId, Network};
 
 #[cfg(target_arch = "wasm32")]
 mod wasm;
