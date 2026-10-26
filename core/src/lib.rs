@@ -35,6 +35,9 @@ use zcash_note_encryption::{
 use zcash_primitives::transaction::Transaction;
 use zcash_protocol::consensus::{BlockHeight, BranchId, Network, NetworkType};
 
+#[cfg(target_arch = "wasm32")]
+mod wasm;
+
 
 /// Prefix of an encoded receipt, so a receipt is recognisable in a link or a file.
 pub const PREFIX: &str = "zr1";
