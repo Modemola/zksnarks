@@ -1,0 +1,22 @@
+[package]
+name = "zreceipt"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Shielded payment receipts for Zcash: prove one payment, reveal nothing else."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+base64 = "0.22"
+orchard = { version = "0.16", default-features = false, features = ["std"] }
+thiserror = "2"
+zcash_address = "0.14"
+zcash_note_encryption = "0.5"
+zcash_primitives = { version = "0.31", default-features = false }
+zcash_protocol = "0.11"
+
+[dev-dependencies]
+orchard = { version = "0.16", features = ["circuit"] }
+rand = "0.10"
