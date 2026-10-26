@@ -5,11 +5,12 @@ const RULES: [RegExp, string][] = [
   [/failed to fetch|networkerror|load failed|network request failed/i, "Can't reach the server right now. Check your connection and try again; nothing was sent."],
   [/HTTP 429|too many requests/i, "The server is busy. Wait a few seconds and try again."],
   [/HTTP 5\d\d|timeout|timed out/i, "The server took too long to answer. Try again in a moment."],
-  [/HTTP 404|not found/i, "Not found. It may have been removed, or the link is wrong."],
-  // Add your product's own errors here, most specific first.
+  [/HTTP 404|not found/i, "The Zcash network has no transaction with that ID. Check it was copied in full, and that it is on the same network as the key."],
 ];
 
 export function friendlyError(e: unknown): string {
+  // Messages from the receipt engine are already written for people.
+  if (e instanceof Error && (e as { plain?: boolean }).plain) return e.message;
   const raw = e instanceof Error ? e.message : typeof e === "string" ? e : JSON.stringify(e);
   for (const [re, msg] of RULES) if (re.test(raw)) return msg;
   return `Something went wrong: ${raw}`;

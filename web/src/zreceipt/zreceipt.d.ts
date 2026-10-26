@@ -19,6 +19,11 @@ export function findPayments(ufvk: string, raw_tx: Uint8Array, height: number): 
 export function receiptInfo(text: string): string;
 
 /**
+ * The transaction ID inside a receipt, computed from the transaction's bytes.
+ */
+export function receiptTransactionId(text: string): string;
+
+/**
  * Checks a receipt against the transaction inside it.
  */
 export function verifyReceipt(text: string): string;
@@ -35,6 +40,7 @@ export interface InitOutput {
     readonly addressMatches: (a: number, b: number, c: number, d: number) => number;
     readonly findPayments: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly receiptInfo: (a: number, b: number) => [number, number];
+    readonly receiptTransactionId: (a: number, b: number) => [number, number];
     readonly verifyReceipt: (a: number, b: number) => [number, number];
     readonly viewingKeyNetwork: (a: number, b: number) => [number, number];
     readonly rustsecp256k1_v0_14_context_create: (a: number) => number;

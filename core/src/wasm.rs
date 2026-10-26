@@ -5,8 +5,8 @@ use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    address_contains, find_payments, format_zec, network_name, parse_viewing_key, verify,
-    Direction, Error, Memo, Receipt,
+    address_contains, find_payments, format_zec, network_name, parse_viewing_key, transaction_id,
+    verify, Direction, Error, Memo, Receipt,
 };
 
 fn memo_json(m: &Memo) -> Value {
@@ -34,6 +34,15 @@ pub fn receipt_info(text: &str) -> String {
             "bytes": r.to_bytes().len(),
         })
         .to_string(),
+        Err(e) => err(e),
+    }
+}
+
+/// The transaction ID inside a receipt, computed from the transaction's bytes.
+#[wasm_bindgen(js_name = receiptTransactionId)]
+pub fn receipt_transaction_id(text: &str) -> String {
+    match Receipt::decode(text).and_then(|r| transaction_id(&r)) {
+        Ok(txid) => json!({ "ok": true, "txid": txid }).to_string(),
         Err(e) => err(e),
     }
 }

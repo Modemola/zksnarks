@@ -38,7 +38,6 @@ use zcash_protocol::consensus::{BlockHeight, BranchId, Network, NetworkType};
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
-
 /// Prefix of an encoded receipt, so a receipt is recognisable in a link or a file.
 pub const PREFIX: &str = "zr1";
 const FORMAT_VERSION: u8 = 1;
@@ -62,7 +61,9 @@ pub enum Error {
     Mismatch,
     #[error("That is not a viewing key this tool can read. Use a unified full viewing key (uview… or uviewtest…).")]
     BadViewingKey,
-    #[error("The viewing key has no Orchard part, so it cannot find Orchard or Ironwood payments.")]
+    #[error(
+        "The viewing key has no Orchard part, so it cannot find Orchard or Ironwood payments."
+    )]
     NoOrchardKey,
     #[error("The viewing key is for {0}, but the transaction is on {1}.")]
     WrongNetwork(&'static str, &'static str),
@@ -220,7 +221,11 @@ impl Memo {
         if m[0] <= 0xF4 {
             let end = m.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
             if let Ok(t) = std::str::from_utf8(&m[..end]) {
-                return if t.is_empty() { Memo::Empty } else { Memo::Text(t.to_owned()) };
+                return if t.is_empty() {
+                    Memo::Empty
+                } else {
+                    Memo::Text(t.to_owned())
+                };
             }
         }
         let end = m.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
@@ -245,7 +250,11 @@ pub struct Proven {
     pub memo: Memo,
 }
 
-fn bundle_for(tx: &Transaction, pool: Pool) -> Option<&orchard::Bundle<impl orchard::bundle::Authorization, zcash_protocol::value::ZatBalance>> {
+fn bundle_for(
+    tx: &Transaction,
+    pool: Pool,
+) -> Option<&orchard::Bundle<impl orchard::bundle::Authorization, zcash_protocol::value::ZatBalance>>
+{
     match pool {
         Pool::Orchard => tx.orchard_bundle(),
         Pool::Ironwood => tx.ironwood_bundle(),
@@ -313,6 +322,11 @@ where
     (note == claimed && addr.to_raw_address_bytes() == *recipient).then_some((note, addr, memo))
 }
 
+/// The ID of the transaction inside a receipt, computed from its bytes.
+pub fn transaction_id(r: &Receipt) -> Result<String, Error> {
+    Ok(parse_tx(&r.tx, r.network, r.height)?.txid().to_string())
+}
+
 /// Checks a receipt against the transaction it carries.
 ///
 /// This proves the payment is inside that transaction. The caller must still
@@ -325,10 +339,18 @@ pub fn verify(r: &Receipt) -> Result<Proven, Error> {
     let action = actions.get(i).ok_or(Error::NoSuchOutput(i))?;
     let opened = match r.pool {
         Pool::Orchard => open_with_rseed::<orchard::note_encryption::OrchardVersion, _>(
-            action, r.pool, &r.recipient, r.value, r.rseed,
+            action,
+            r.pool,
+            &r.recipient,
+            r.value,
+            r.rseed,
         ),
         Pool::Ironwood => open_with_rseed::<orchard::note_encryption::IronwoodVersion, _>(
-            action, r.pool, &r.recipient, r.value, r.rseed,
+            action,
+            r.pool,
+            &r.recipient,
+            r.value,
+            r.rseed,
         ),
     };
     let (_, _, memo) = opened.ok_or(Error::Mismatch)?;
@@ -452,12 +474,24 @@ pub fn find_payments(ufvk: &str, raw_tx: &[u8], height: u32) -> Result<Vec<Found
     let mut out = Vec::new();
     if let Some(b) = tx.orchard_bundle() {
         scan::<orchard::note_encryption::OrchardVersion, _>(
-            b.actions().iter(), Pool::Orchard, &fvk, network, height, raw_tx, &mut out,
+            b.actions().iter(),
+            Pool::Orchard,
+            &fvk,
+            network,
+            height,
+            raw_tx,
+            &mut out,
         );
     }
     if let Some(b) = tx.ironwood_bundle() {
         scan::<orchard::note_encryption::IronwoodVersion, _>(
-            b.actions().iter(), Pool::Ironwood, &fvk, network, height, raw_tx, &mut out,
+            b.actions().iter(),
+            Pool::Ironwood,
+            &fvk,
+            network,
+            height,
+            raw_tx,
+            &mut out,
         );
     }
     Ok(out)
@@ -513,20 +547,65 @@ mod tests {
         let (payer, shop, other) = (key(&mut rng), key(&mut rng), key(&mut rng));
         let shop_addr = shop.address_at(0u32, Scope::External);
         let other_addr = other.address_at(0u32, Scope::External);
-        let mut b = Builder::new(BundleType::DEFAULT, version, version.default_flags(), Anchor::empty_tree()).unwrap();
+        let mut b = Builder::new(
+            BundleType::DEFAULT,
+            version,
+            version.default_flags(),
+            Anchor::empty_tree(),
+        )
+        .unwrap();
         let ovk = Some(payer.to_ovk(Scope::External));
-        b.add_output(ovk.clone(), shop_addr, NoteValue::from_raw(250_000_000), memo("Invoice #1042")).unwrap();
-        b.add_output(ovk, other_addr, NoteValue::from_raw(99_000_000), memo("private")).unwrap();
+        b.add_output(
+            ovk.clone(),
+            shop_addr,
+            NoteValue::from_raw(250_000_000),
+            memo("Invoice #1042"),
+        )
+        .unwrap();
+        b.add_output(
+            ovk,
+            other_addr,
+            NoteValue::from_raw(99_000_000),
+            memo("private"),
+        )
+        .unwrap();
         let (bundle, _) = b.build::<i64>(&mut rng).unwrap().unwrap();
-        let actions = bundle.actions().iter().cloned().map(|a| a.map(|_| ())).collect();
-        Fixture { actions, payer, shop, shop_addr, other_addr }
+        let actions = bundle
+            .actions()
+            .iter()
+            .cloned()
+            .map(|a| a.map(|_| ()))
+            .collect();
+        Fixture {
+            actions,
+            payer,
+            shop,
+            shop_addr,
+            other_addr,
+        }
     }
 
     fn found(f: &Fixture, fvk: &FullViewingKey, pool: Pool) -> Vec<Found> {
         let mut out = Vec::new();
         match pool {
-            Pool::Orchard => scan::<orchard::note_encryption::OrchardVersion, _>(f.actions.iter(), pool, fvk, NetworkType::Main, 1, &[], &mut out),
-            Pool::Ironwood => scan::<orchard::note_encryption::IronwoodVersion, _>(f.actions.iter(), pool, fvk, NetworkType::Main, 1, &[], &mut out),
+            Pool::Orchard => scan::<orchard::note_encryption::OrchardVersion, _>(
+                f.actions.iter(),
+                pool,
+                fvk,
+                NetworkType::Main,
+                1,
+                &[],
+                &mut out,
+            ),
+            Pool::Ironwood => scan::<orchard::note_encryption::IronwoodVersion, _>(
+                f.actions.iter(),
+                pool,
+                fvk,
+                NetworkType::Main,
+                1,
+                &[],
+                &mut out,
+            ),
         }
         out
     }
@@ -534,8 +613,20 @@ mod tests {
     fn open(f: &Fixture, r: &Receipt) -> Option<(Note, Address, [u8; 512])> {
         let a = f.actions.get(r.action_index as usize)?;
         match r.pool {
-            Pool::Orchard => open_with_rseed::<orchard::note_encryption::OrchardVersion, _>(a, r.pool, &r.recipient, r.value, r.rseed),
-            Pool::Ironwood => open_with_rseed::<orchard::note_encryption::IronwoodVersion, _>(a, r.pool, &r.recipient, r.value, r.rseed),
+            Pool::Orchard => open_with_rseed::<orchard::note_encryption::OrchardVersion, _>(
+                a,
+                r.pool,
+                &r.recipient,
+                r.value,
+                r.rseed,
+            ),
+            Pool::Ironwood => open_with_rseed::<orchard::note_encryption::IronwoodVersion, _>(
+                a,
+                r.pool,
+                &r.recipient,
+                r.value,
+                r.rseed,
+            ),
         }
     }
 
@@ -551,7 +642,12 @@ mod tests {
         assert!(paid.iter().all(|p| p.direction == Direction::Sent));
 
         // Receipts made by either side open exactly their own output.
-        let by_payer = paid.iter().find(|p| p.value == 250_000_000).unwrap().receipt.clone();
+        let by_payer = paid
+            .iter()
+            .find(|p| p.value == 250_000_000)
+            .unwrap()
+            .receipt
+            .clone();
         let by_shop = shop[0].receipt.clone();
         assert_eq!(by_payer.rseed, by_shop.rseed);
         let (note, addr, m) = open(&f, &by_payer).expect("honest receipt opens");
@@ -560,14 +656,42 @@ mod tests {
         assert_eq!(Memo::from_bytes(&m), Memo::Text("Invoice #1042".into()));
 
         // Lies fail: amount, recipient, seed, and pointing at another output.
-        assert!(open(&f, &Receipt { value: 900_000_000, ..by_payer.clone() }).is_none());
-        assert!(open(&f, &Receipt { recipient: f.other_addr.to_raw_address_bytes(), ..by_payer.clone() }).is_none());
+        assert!(open(
+            &f,
+            &Receipt {
+                value: 900_000_000,
+                ..by_payer.clone()
+            }
+        )
+        .is_none());
+        assert!(open(
+            &f,
+            &Receipt {
+                recipient: f.other_addr.to_raw_address_bytes(),
+                ..by_payer.clone()
+            }
+        )
+        .is_none());
         let mut seed = by_payer.rseed;
         seed[0] ^= 1;
-        assert!(open(&f, &Receipt { rseed: seed, ..by_payer.clone() }).is_none());
+        assert!(open(
+            &f,
+            &Receipt {
+                rseed: seed,
+                ..by_payer.clone()
+            }
+        )
+        .is_none());
         for i in 0..f.actions.len() {
             if i != by_payer.action_index as usize {
-                assert!(open(&f, &Receipt { action_index: i as u16, ..by_payer.clone() }).is_none());
+                assert!(open(
+                    &f,
+                    &Receipt {
+                        action_index: i as u16,
+                        ..by_payer.clone()
+                    }
+                )
+                .is_none());
             }
         }
         // A stranger's viewing key finds nothing.
@@ -589,7 +713,14 @@ mod tests {
     fn wrong_pool_does_not_open() {
         let f = fixture(BundleVersion::orchard_v2());
         let r = found(&f, &f.shop, Pool::Orchard)[0].receipt.clone();
-        assert!(open(&f, &Receipt { pool: Pool::Ironwood, ..r }).is_none());
+        assert!(open(
+            &f,
+            &Receipt {
+                pool: Pool::Ironwood,
+                ..r
+            }
+        )
+        .is_none());
     }
 
     #[test]
@@ -607,8 +738,14 @@ mod tests {
         let s = r.encode();
         assert!(s.starts_with("zr1"));
         assert_eq!(Receipt::decode(&s).unwrap(), r);
-        assert_eq!(Receipt::decode(&format!("https://example.com/check#{s}")).unwrap(), r);
-        assert_eq!(Receipt::decode(&format!("  {}\n{}  ", &s[..20], &s[20..])).unwrap(), r);
+        assert_eq!(
+            Receipt::decode(&format!("https://example.com/check#{s}")).unwrap(),
+            r
+        );
+        assert_eq!(
+            Receipt::decode(&format!("  {}\n{}  ", &s[..20], &s[20..])).unwrap(),
+            r
+        );
         assert_eq!(Receipt::decode("hello"), Err(Error::NotAReceipt));
         assert_eq!(Receipt::decode("zr1!!!"), Err(Error::Malformed));
         assert_eq!(Receipt::decode("zr1AQ"), Err(Error::Malformed));
@@ -619,7 +756,10 @@ mod tests {
     fn real_testnet_transaction() {
         let raw = include_bytes!("../tests/data/testnet-4544259.tx");
         let tx = parse_tx(raw, NetworkType::Test, 4_544_259).unwrap();
-        assert_eq!(tx.txid().to_string(), "7646b10c3ccfc926be465c80d82afe2d24b7381837e3805675924a29379c44e8");
+        assert_eq!(
+            tx.txid().to_string(),
+            "7646b10c3ccfc926be465c80d82afe2d24b7381837e3805675924a29379c44e8"
+        );
         // A made-up receipt against a real transaction is rejected, not accepted.
         let fake = Receipt {
             network: NetworkType::Test,
@@ -632,14 +772,34 @@ mod tests {
             tx: raw.to_vec(),
         };
         assert_eq!(verify(&fake), Err(Error::Mismatch));
-        assert_eq!(verify(&Receipt { action_index: 9, ..fake.clone() }), Err(Error::NoSuchOutput(9)));
+        assert_eq!(
+            verify(&Receipt {
+                action_index: 9,
+                ..fake.clone()
+            }),
+            Err(Error::NoSuchOutput(9))
+        );
         // This transaction moves funds from Orchard to Ironwood, so it has both.
-        assert_eq!(verify(&Receipt { pool: Pool::Ironwood, ..fake.clone() }), Err(Error::Mismatch));
-        assert_eq!(verify(&Receipt { tx: raw[..100].to_vec(), ..fake }), Err(Error::BadTransaction));
+        assert_eq!(
+            verify(&Receipt {
+                pool: Pool::Ironwood,
+                ..fake.clone()
+            }),
+            Err(Error::Mismatch)
+        );
+        assert_eq!(
+            verify(&Receipt {
+                tx: raw[..100].to_vec(),
+                ..fake
+            }),
+            Err(Error::BadTransaction)
+        );
     }
 
     fn f_addr() -> [u8; 43] {
-        key(&mut rand::rng()).address_at(0u32, Scope::External).to_raw_address_bytes()
+        key(&mut rand::rng())
+            .address_at(0u32, Scope::External)
+            .to_raw_address_bytes()
     }
 
     #[test]

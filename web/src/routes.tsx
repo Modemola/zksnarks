@@ -17,10 +17,9 @@ export const routes: RouteObject[] = [
       // The landing page ships with the app; every other page loads its own
       // code when it's first visited.
       { index: true, element: <Home /> },
-      { path: "items", lazy: async () => ({ Component: (await import("./pages/Explore")).Explore }) },
-      { path: "items/:id", lazy: async () => ({ Component: (await import("./pages/ItemPage")).ItemPage }) },
+      { path: "check", lazy: async () => ({ Component: (await import("./pages/CheckPage")).CheckPage }) },
+      { path: "create", lazy: async () => ({ Component: (await import("./pages/CreatePage")).CreatePage }) },
       { path: "how", lazy: async () => ({ Component: (await import("./pages/HowPage")).HowPage }) },
-      { path: "new", lazy: async () => ({ Component: (await import("./pages/CreatePage")).CreatePage }) },
       { path: "*", lazy: async () => ({ Component: (await import("./pages/NotFound")).NotFound }) },
     ],
   },
@@ -32,7 +31,7 @@ export const routes: RouteObject[] = [
  */
 export const PRERENDERED: Record<string, string> = {
   "/": brand.title,
-  "/items": `Explore · ${brand.name}`,
+  "/check": `Check a receipt · ${brand.name}`,
+  "/create": `Make a receipt · ${brand.name}`,
   "/how": `How it works · ${brand.name}`,
-  "/new": `Create · ${brand.name}`,
 };
