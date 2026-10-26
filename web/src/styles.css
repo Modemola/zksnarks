@@ -13,14 +13,14 @@
   --axis: color-mix(in srgb, var(--ink) 20%, transparent);
   --surface: color-mix(in srgb, var(--ink) 3%, transparent);
   --raised: color-mix(in srgb, var(--ink) 6%, transparent);
-  --accent: #0c6a50;
-  --accent-2: #12917a;
-  --accent-soft: #cfe7dd;
-  --accent-deep: #084a38;
+  --accent: #8a5a00;
+  --accent-2: #b07a0c;
+  --accent-soft: #f4e6c2;
+  --accent-deep: #5c3d00;
   --accent-ink: #ffffff;
-  --glow: rgba(18, 145, 122, 0.35);
+  --glow: rgba(244, 183, 40, 0.42);
   --good: #1d7a4c;
-  --warning: #8a5a00;
+  --warning: #9a4300;
   --critical: #b3261e;
   --mark: color-mix(in srgb, var(--ink) 55%, transparent);
 
@@ -38,8 +38,8 @@
   --glass-edge: rgba(255, 255, 255, 0.7);
   --glass-shadow: 0 20px 50px -18px rgba(40, 50, 40, 0.35);
 
-  --aurora-a: #2fb48c;
-  --aurora-b: #74c7d6;
+  --aurora-a: #f4b728;
+  --aurora-b: #9cc5b8;
   --aurora-c: #e6c27a;
   --aurora-o: 0.45;
 
@@ -64,12 +64,12 @@
     --ink: #ebe7dd;
     --ink-secondary: #c4c1b8;
     --ink-muted: #9a9ca3;
-    --accent: #52c29b;
-    --accent-2: #6fd6c0;
-    --accent-soft: #173a30;
-    --accent-deep: #9be3c9;
-    --accent-ink: #06261c;
-    --glow: rgba(82, 194, 155, 0.35);
+    --accent: #f4b728;
+    --accent-2: #ffcf5a;
+    --accent-soft: #3a2c0a;
+    --accent-deep: #ffd877;
+    --accent-ink: #1d1400;
+    --glow: rgba(244, 183, 40, 0.3);
     --good: #5cc496;
     --warning: #e2b05a;
     --critical: #f2928b;
@@ -272,7 +272,7 @@ dl.facts dd .small { margin-top: 0.3rem; }
   font: 500 0.95rem/1.2 var(--body); cursor: pointer; text-decoration: none;
   transition: transform 0.45s var(--spring), box-shadow 0.45s var(--ease), filter 0.3s;
 }
-@media (prefers-color-scheme: dark) { .btn { background: linear-gradient(160deg, var(--accent-2), var(--accent) 60%, #2c9a76); } }
+@media (prefers-color-scheme: dark) { .btn { background: linear-gradient(160deg, var(--accent-2), var(--accent) 60%, #d99a12); } }
 .btn:hover { color: var(--accent-ink); transform: translateY(-2px); box-shadow: 0 16px 34px -10px var(--glow), inset 0 1px 0 rgba(255,255,255,0.4); }
 .btn:active { transform: translateY(1px) scale(0.98); }
 .btn::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%); transform: translateX(-120%); }
@@ -755,8 +755,8 @@ details.more > summary:focus-visible, .board-row :focus-visible { outline-offset
 }
 
 /* ---------- Contrast: small text stays readable over the aurora ---------- */
-:root { --ink-muted: #535a68; --aurora-o: 0.38; --link: #0a5a44; }
-@media (prefers-color-scheme: dark) { :root { --ink-muted: #aeb0b6; --aurora-o: 0.24; --link: #7fdcbc; } }
+:root { --ink-muted: #535a68; --aurora-o: 0.38; --link: #7a4f00; }
+@media (prefers-color-scheme: dark) { :root { --ink-muted: #aeb0b6; --aurora-o: 0.24; --link: #ffd36b; } }
 a { color: var(--link); }
 .section-head p.eyebrow { color: var(--accent-deep); }
 .story-steps li { opacity: 1; color: var(--ink-muted); }
@@ -811,3 +811,38 @@ section[id] { scroll-margin-top: calc(var(--hdr-bottom, 80px) + 16px); }
   body { background: #fff; }
   .route, .reveal { animation: none; opacity: 1; transform: none; }
 }
+
+/* ---------- Receipts: the check, step by step ---------- */
+.check-steps { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.45rem; }
+.check-steps li { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 0.65rem; align-items: start; font-size: 0.92rem; color: var(--ink-muted); }
+.check-steps .mark { width: 14px; height: 14px; margin-top: 0.22rem; border-radius: 50%; border: 1.5px solid var(--axis); transition: background 0.3s var(--ease), border-color 0.3s var(--ease); }
+.check-steps .what { grid-column: 2; }
+.check-steps .detail { grid-column: 2; font: 400 0.78rem/1.4 var(--mono); color: var(--ink-muted); overflow-wrap: anywhere; }
+.check-steps li.running { color: var(--ink); }
+.check-steps li.running .mark { border-color: var(--accent); border-top-color: transparent; animation: spin 0.8s linear infinite; }
+.check-steps li.done { color: var(--ink); }
+.check-steps li.done .mark { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--coal); }
+.check-steps li.failed { color: var(--critical); }
+.check-steps li.failed .mark { background: var(--critical); border-color: var(--critical); }
+.check-steps li.failed .detail { color: var(--critical); }
+@media (prefers-reduced-motion: reduce) { .check-steps li.running .mark { animation: none; border-top-color: var(--accent); } }
+
+/* One opened payment beside the sealed ones. */
+.outputs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.1rem 0 0.2rem; }
+.out { display: inline-flex; align-items: center; min-height: 34px; padding: 0.35rem 0.8rem; border-radius: 10px; font: 500 0.8rem/1.2 var(--mono); animation: outflip 0.6s var(--ease) both; animation-delay: var(--d); }
+@keyframes outflip { from { transform: rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.out.open { background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 20px -8px var(--glow); }
+.out.sealed { background: var(--raised); color: var(--ink-muted); background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--hairline) 6px 7px); }
+.receipt-facts { margin-top: 1rem; }
+.receipt-facts dd { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+.receipt-facts .memo { font-style: italic; }
+.receipt-facts .hash { justify-content: flex-end; }
+
+/* Receipt text areas and result lists. */
+textarea.receipt-input { font: 400 0.8rem/1.45 var(--mono); min-height: 7.5rem; resize: vertical; word-break: break-all; }
+.payments { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.8rem; }
+.payments li { display: grid; gap: 0.5rem; padding: 1rem; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--hairline); }
+.payments .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.4rem 1rem; }
+.payments .amount { font: 300 1.6rem/1 var(--display); color: var(--accent-deep); }
+.payments .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.link-box { display: block; width: 100%; padding: 0.6rem 0.75rem; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--hairline); font: 400 0.75rem/1.4 var(--mono); color: var(--ink-secondary); overflow-wrap: anywhere; max-height: 5.6rem; overflow: auto; }

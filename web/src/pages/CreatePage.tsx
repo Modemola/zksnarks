@@ -1,118 +1,224 @@
-import { useState, type ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { PageHead, Panel, useTitle } from "../components/ui";
-import { data } from "../lib/data";
-import { friendlyError, isCancel } from "../lib/errors";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Hash, PageHead, Panel, useTitle } from "../components/ui";
+import { friendlyError } from "../lib/errors";
+import { engine, findPayments, keyNetwork, memoText, receiptLink, type Payment } from "../lib/receipts";
 import { useToasts } from "../lib/toasts";
 
-type Form = { id: string; name: string; summary: string };
-const EMPTY: Form = { id: "", name: "", summary: "" };
-const EXAMPLE: Form = { id: "my-first-item", name: "My first item", summary: "A short description of what it is." };
+const KEY_RE = /^uview(test)?1[02-9ac-hj-np-z]+$/;
+const TXID_RE = /^[0-9a-fA-F]{64}$/;
 
-/** Problems with the form, in plain words, keyed by field. Shown as you type. */
-function check(f: Form): Partial<Record<keyof Form, string>> {
-  const p: Partial<Record<keyof Form, string>> = {};
-  if (!f.id) p.id = "Choose an id.";
-  else if (!/^[a-z0-9][a-z0-9-]{1,40}$/.test(f.id)) p.id = "Use 2 to 41 lowercase letters, digits or dashes.";
-  if (!f.name.trim()) p.name = "Give it a name.";
-  if (f.summary.length > 160) p.summary = `Keep it under 160 characters (${f.summary.length} now).`;
+function problems(key: string, txid: string) {
+  const p: { key?: string; txid?: string } = {};
+  const k = key.trim();
+  if (!k) p.key = "Paste your wallet's unified full viewing key.";
+  else if (k.startsWith("uivk")) p.key = "That is an incoming viewing key. Use the full viewing key (uview…), which can also find payments you sent.";
+  else if (k.startsWith("zxview") || k.startsWith("zviews")) p.key = "That is a Sapling-only key. Receipts need a unified key (uview…) with an Orchard part.";
+  else if (!KEY_RE.test(k)) p.key = "A unified full viewing key starts with uview1 (mainnet) or uviewtest1 (testnet).";
+  const t = txid.trim();
+  if (!t) p.txid = "Paste the transaction ID from your wallet's history.";
+  else if (!TXID_RE.test(t)) p.txid = `A transaction ID is 64 characters of 0-9 and a-f (${t.length} now).`;
   return p;
 }
 
-/** A form that validates as you type, fills an example without overwriting, and reports each step. */
+/** Find the payments a viewing key can see in a transaction, then make a receipt for one. */
 export function CreatePage() {
-  useTitle("Create");
-  const [form, setForm] = useState<Form>(EMPTY);
-  const [touched, setTouched] = useState<Partial<Record<keyof Form, boolean>>>({});
+  useTitle("Make a receipt");
+  const [key, setKey] = useState("");
+  const [txid, setTxid] = useState("");
+  const [touched, setTouched] = useState<{ key?: boolean; txid?: boolean }>({});
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [found, setFound] = useState<{ height: number; payments: Payment[] } | null>(null);
   const toasts = useToasts();
-  const navigate = useNavigate();
-  const problems = check(form);
-  const shown = (k: keyof Form) => (touched[k] ? problems[k] : undefined);
-  const update = (k: keyof Form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((f) => ({ ...f, [k]: e.target.value }));
-    setTouched((t) => ({ ...t, [k]: true }));
-  };
-  const field = (k: keyof Form) => ({
-    "aria-invalid": !!shown(k),
-    "aria-describedby": `${k}-help`,
-    onBlur: () => setTouched((t) => ({ ...t, [k]: true })),
-  });
-  // Only empty fields are filled, so nothing typed is lost.
-  const fillExample = () => setForm((f) => ({ id: f.id || EXAMPLE.id, name: f.name || EXAMPLE.name, summary: f.summary || EXAMPLE.summary }));
+  const p = problems(key, txid);
+  const shown = (k: "key" | "txid") => (touched[k] ? p[k] : undefined);
 
   const submit = async () => {
-    setTouched({ id: true, name: true, summary: true });
-    if (Object.keys(problems).length) return;
+    setTouched({ key: true, txid: true });
+    if (p.key || p.txid) return;
     setBusy(true);
-    const step = toasts.start(`Creating ${form.name}`);
+    setErr(null);
+    setFound(null);
     try {
-      step("Working");
-      const item = await data.create(form);
-      step("Done", "It's live. Opening it now.");
-      navigate(`/items/${item.id}`, { viewTransition: true });
+      await engine();
+      await keyNetwork(key);
+      setFound(await findPayments(key, txid));
     } catch (e) {
-      const msg = friendlyError(e);
-      step(isCancel(msg) ? "Cancelled" : "Failed", msg);
+      setErr(friendlyError(e));
     } finally {
       setBusy(false);
     }
   };
 
+  const copy = (text: string, what: string) =>
+    navigator.clipboard?.writeText(text).then(
+      () => toasts.start(what)("Done", "Copied to the clipboard."),
+      () => toasts.start(what)("Failed", "Your browser blocked the clipboard. Select the text and copy it instead."),
+    );
+
+  const download = (p: Payment) => {
+    const blob = new Blob([p.receipt + "\n"], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `zcash-receipt-${txid.trim().slice(0, 8)}-${p.actionIndex + 1}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
   return (
     <>
-      <PageHead eyebrow="Create" title={<>Add yours in <em>a minute</em></>}>
-        One sentence on what creating one does, and what the person gets.
+      <PageHead eyebrow="Make a receipt" title={<>One payment, <em>nothing else</em></>}>
+        Find a payment you sent or received, then share a receipt for it. Your viewing key is read in this page and never sent anywhere.
       </PageHead>
       <section className="split" style={{ marginTop: 0 }}>
         <div className="stack">
-          <Panel eyebrow="Step 1" title="Describe it" sub="Everything here can be changed later, except the id.">
-            <div className="grid cols-2" style={{ gap: "0 1rem" }}>
+          <Panel eyebrow="Step 1" title="Find the payment" sub="Both come from your wallet's settings and history.">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+            >
               <label className="field">
-                <span>Id</span>
-                <input type="text" value={form.id} onChange={update("id")} placeholder="my-first-item" {...field("id")} />
-                {shown("id") ? <small id="id-help" className="bad">{shown("id")}</small> : <small id="id-help">Used in links. Can't be changed later.</small>}
-              </label>
-              <label className="field">
-                <span>Name</span>
-                <input type="text" value={form.name} onChange={update("name")} placeholder="My first item" {...field("name")} />
-                <small id="name-help" className={shown("name") ? "bad" : ""}>
-                  {shown("name") ?? "What people will see."}
+                <span>Unified full viewing key</span>
+                <textarea
+                  className="receipt-input"
+                  style={{ minHeight: "5rem" }}
+                  value={key}
+                  onChange={(e) => {
+                    setKey(e.target.value);
+                    setTouched((t) => ({ ...t, key: true }));
+                  }}
+                  placeholder="uview1…"
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-invalid={!!shown("key")}
+                  aria-describedby="key-help"
+                />
+                <small id="key-help" className={shown("key") ? "bad" : ""}>
+                  {shown("key") ?? "It can see your payments but cannot spend. It stays in this page; only the transaction ID below is sent, to fetch the public transaction."}
                 </small>
               </label>
-            </div>
-            <label className="field">
-              <span>Summary</span>
-              <textarea rows={2} value={form.summary} onChange={update("summary")} placeholder="A short description" {...field("summary")} />
-              <small id="summary-help" className={shown("summary") ? "bad" : ""}>
-                {shown("summary") ?? "Optional, one sentence."}
-              </small>
-            </label>
-            <button type="button" className="btn secondary small" onClick={fillExample}>
-              Try it with an example
-            </button>
+              <label className="field">
+                <span>Transaction ID</span>
+                <input
+                  type="text"
+                  value={txid}
+                  onChange={(e) => {
+                    setTxid(e.target.value);
+                    setTouched((t) => ({ ...t, txid: true }));
+                  }}
+                  placeholder="64 characters, 0-9 and a-f"
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-invalid={!!shown("txid")}
+                  aria-describedby="txid-help"
+                />
+                <small id="txid-help" className={shown("txid") ? "bad" : ""}>
+                  {shown("txid") ?? "In your wallet, open the payment and copy its transaction ID."}
+                </small>
+              </label>
+              <button className="btn block" type="submit" disabled={busy}>
+                {busy ? "Looking…" : "Find my payments"}
+              </button>
+            </form>
+            {err && (
+              <div className="note critical" role="alert" style={{ marginTop: "0.9rem" }}>
+                {err} Nothing was saved or shared.
+              </div>
+            )}
           </Panel>
+
+          {found && (
+            <Panel eyebrow="Step 2" title={found.payments.length ? "Choose the payment" : "No payments found"}>
+              {found.payments.length === 0 ? (
+                <p className="small" style={{ margin: 0, color: "var(--ink-secondary)" }}>
+                  This key didn't send or receive any Orchard or Ironwood payment in that transaction. Check that the key is from the wallet that
+                  made or got the payment. Sapling payments are not supported yet.
+                </p>
+              ) : (
+                <ul className="payments">
+                  {found.payments.map((pay) => (
+                    <li key={`${pay.pool}-${pay.actionIndex}`}>
+                      <div className="top">
+                        <span className="amount">{pay.valueZec} ZEC</span>
+                        <span className={`status ${pay.direction === "received" ? "good" : "muted"}`}>
+                          {pay.direction === "received" ? "You received" : "You sent"}
+                        </span>
+                      </div>
+                      <dl className="rows">
+                        <div>
+                          <dt>To</dt>
+                          <dd>
+                            <Hash value={pay.recipient} />
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Note</dt>
+                          <dd style={{ fontStyle: "italic" }}>{memoText(pay.memo)}</dd>
+                        </div>
+                        <div>
+                          <dt>Pool</dt>
+                          <dd>{pay.pool}</dd>
+                        </div>
+                      </dl>
+                      <span className="link-box">{receiptLink(pay.receipt)}</span>
+                      <div className="actions">
+                        <button type="button" className="btn small" onClick={() => copy(receiptLink(pay.receipt), "Copying the receipt link")}>
+                          Copy link
+                        </button>
+                        <button type="button" className="btn small secondary" onClick={() => download(pay)}>
+                          Download
+                        </button>
+                        <Link className="btn small secondary" to={`/check#${pay.receipt}`}>
+                          Check it now
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          )}
         </div>
         <aside className="stack">
-          <Panel className="glass" eyebrow="Step 2" title="Create it">
+          <Panel className="glass" eyebrow="What you share" title="Exactly this">
             <dl className="rows">
               <div>
-                <dt>Id</dt>
-                <dd>{form.id || "Not set"}</dd>
+                <dt>Amount and note</dt>
+                <dd>Shown</dd>
               </div>
               <div>
-                <dt>Name</dt>
-                <dd>{form.name || "Not set"}</dd>
+                <dt>Address paid</dt>
+                <dd>Shown</dd>
+              </div>
+              <div>
+                <dt>Your viewing key</dt>
+                <dd>Never</dd>
+              </div>
+              <div>
+                <dt>Other payments</dt>
+                <dd>Sealed</dd>
               </div>
               <div className="total">
                 <dt>Cost</dt>
                 <dd>Free</dd>
               </div>
             </dl>
-            <button className="btn block" style={{ marginTop: "1rem" }} onClick={submit} disabled={busy}>
-              {busy ? "Creating…" : "Create"}
-            </button>
-            <p className="risk">What happens next, and anything that can't be undone, said before the click.</p>
+            <p className="risk">
+              A receipt can't be taken back once shared: anyone with it can see that one payment. It never lets anyone spend or watch your
+              wallet.
+            </p>
+          </Panel>
+          <Panel className="quiet" eyebrow="Where to find the key">
+            <p className="small" style={{ margin: 0, color: "var(--ink-secondary)" }}>
+              Most shielded wallets can export a unified full viewing key (it starts with <code>uview1</code>), usually under settings or
+              backup. Developers can use <code>zcash-devtool</code> or the <code>zreceipt</code> library directly.{" "}
+              <Link viewTransition to="/how#developers">
+                For developers
+              </Link>
+            </p>
           </Panel>
         </aside>
       </section>

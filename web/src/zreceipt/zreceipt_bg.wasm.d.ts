@@ -4,6 +4,7 @@ export const memory: WebAssembly.Memory;
 export const addressMatches: (a: number, b: number, c: number, d: number) => number;
 export const findPayments: (a: number, b: number, c: number, d: number, e: number) => [number, number];
 export const receiptInfo: (a: number, b: number) => [number, number];
+export const receiptTransactionId: (a: number, b: number) => [number, number];
 export const verifyReceipt: (a: number, b: number) => [number, number];
 export const viewingKeyNetwork: (a: number, b: number) => [number, number];
 export const rustsecp256k1_v0_14_context_create: (a: number) => number;

@@ -132,9 +132,8 @@ export function Layout() {
                 </details>
               </div>
             )}
-            {/* The header's main action. Swap for sign-in, a wallet, or remove. */}
-            <NavLink viewTransition className="btn small" to="/new">
-              Get started
+            <NavLink viewTransition className="btn small" to="/create">
+              Make a receipt
             </NavLink>
           </div>
         </div>
