@@ -69,7 +69,7 @@ sequenceDiagram
     participant R as Relay (3 functions)
     participant L as lightwalletd
     W->>W: viewing key + transaction ID, in the page
-    W->>B: receipt link (after the #, never sent to a server)
+    W->>B: receipt link (the receipt rides in the link fragment, never sent to a server)
     B->>B: transaction ID = ZIP 244 hash of the bytes in the receipt
     B->>B: rebuild the note, derive its ephemeral key (ZIP 212)
     B->>B: decrypt that one output, compare with the commitment on chain
