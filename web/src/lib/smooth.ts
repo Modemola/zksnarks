@@ -1,32 +1,11 @@
-/** Inertia scrolling on desktop. Phones and reduced-motion users keep native scrolling. */
-import Lenis from "lenis";
-import "lenis/dist/lenis.css";
-import { useEffect } from "react";
+/**
+ * Native scrolling everywhere. An inertia-scrolling library used to run here;
+ * it added a frame of delay to every wheel movement and read as lag, so the
+ * browser's own scrolling (and its smooth anchor jumps from CSS) is used instead.
+ */
+export function useSmoothScroll() {}
 
-let lenis: Lenis | null = null;
-
-export function useSmoothScroll() {
-  useEffect(() => {
-    const fine = window.matchMedia("(pointer: fine)").matches;
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!fine || still) return;
-    lenis = new Lenis({
-      lerp: 0.085,
-      wheelMultiplier: 0.95,
-      anchors: { offset: -96 },
-      autoRaf: true,
-      // Inner scrollers (tables, code, the phone nav strip, modals) scroll natively.
-      prevent: (node) => !!node.closest?.(".table-wrap, pre, nav.main, [data-lenis-prevent]"),
-    });
-    return () => {
-      lenis?.destroy();
-      lenis = null;
-    };
-  }, []);
-}
-
-/** Jump to the top on a page change, through Lenis when it is running. */
+/** Jump to the top on a page change. */
 export function scrollToTop() {
-  if (lenis) lenis.scrollTo(0, { immediate: true, force: true });
-  else window.scrollTo({ top: 0 });
+  window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
 }
