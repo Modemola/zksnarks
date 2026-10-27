@@ -1036,3 +1036,29 @@ label.field input:focus-visible, label.field textarea:focus-visible, label.field
   outline: 2px solid var(--ink); outline-offset: 1px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 45%, transparent);
 }
 .table-wrap:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+/* ---------- UX pass ---------- */
+.try { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.6rem; margin-top: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--rule); }
+.try .small { margin-right: 0.2rem; }
+/* Disabled buttons read as "not yet", not as broken. */
+.btn:disabled, .btn:disabled:hover { opacity: 1; background: var(--void-2); color: var(--ink-muted); box-shadow: none; border: 1px dashed var(--rule); transform: none; }
+/* Two-way switch: genuine receipt or forged copy. */
+.seg { display: inline-flex; padding: 3px; margin: 0 0 1rem; border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--coal); }
+.seg button { font: 500 0.88rem/1 var(--body); padding: 0.6rem 1rem; min-height: 38px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink-muted); }
+.seg button.on { background: var(--ink); color: var(--gold); }
+@media (prefers-color-scheme: dark) { .seg button.on { background: var(--gold); color: #15171c; } }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.results-anchor { scroll-margin-top: calc(var(--hdr-bottom, 90px) + 16px); outline: none; }
+.results-anchor:focus-visible > .panel { outline: 2px solid var(--ink); outline-offset: 3px; }
+nav.main .short { display: none; }
+@media (max-width: 600px) {
+  nav.main .full { display: none; }
+  nav.main .short { display: inline; }
+  nav.main { justify-content: space-between; }
+  nav.main a { padding: 0.45rem 0.55rem; }
+  .header-cta { display: none; }
+}
+/* The network badge is always visible; the block number only where there's room. */
+header.site .net { display: inline-block; }
+@media (max-width: 1380px) { .net-tip { display: none; } }
+@media (max-width: 900px) { header.site .net { order: 2; padding: 0.4rem 0.5rem; font-size: 9.5px; letter-spacing: 0.1em; } }
