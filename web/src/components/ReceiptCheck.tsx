@@ -33,6 +33,17 @@ export function ReceiptCheck({
   // A receipt that fails a check, versus a check that couldn't run (network).
   const [rejected, setRejected] = useState(true);
   const started = useRef(false);
+  const verdict = useRef<HTMLDivElement>(null);
+  // When the verdict lands off screen (phones especially), bring it into view.
+  useEffect(() => {
+    const el = verdict.current;
+    if (!el || (!result && !err)) return;
+    const r = el.getBoundingClientRect();
+    if (r.top > window.innerHeight - 80 || r.bottom < 0) {
+      const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
+    }
+  }, [result, err]);
 
   const start = async () => {
     setErr(null);
@@ -83,6 +94,7 @@ export function ReceiptCheck({
           ))}
         </ol>
       )}
+      <div ref={verdict} />
       {err && (
         <div className="note critical" role="alert" style={{ margin: "0.9rem 0 0" }}>
           <strong>{rejected ? "This receipt did not check out." : "The check couldn't finish."}</strong> {err}

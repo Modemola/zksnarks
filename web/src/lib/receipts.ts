@@ -18,6 +18,19 @@ export function engine(): Promise<Wasm> {
   return wasm;
 }
 
+/**
+ * Starts downloading the engine once the page is idle, so the first click
+ * doesn't wait for it. Pages that check or make receipts call this on mount.
+ */
+export function warmEngine() {
+  if (typeof window === "undefined" || wasm) return;
+  const go = () => void engine().catch(() => {
+    wasm = null; // try again on the real click
+  });
+  if ("requestIdleCallback" in window) window.requestIdleCallback(go, { timeout: 3000 });
+  else setTimeout(go, 1500);
+}
+
 export type Network = "mainnet" | "testnet";
 
 export type Memo = { kind: "empty" } | { kind: "text"; text: string } | { kind: "binary"; hex: string };

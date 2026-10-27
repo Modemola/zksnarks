@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Reveal } from "../components/motion";
 import { ReceiptCheck } from "../components/ReceiptCheck";
 import { Slip } from "../components/Slip";
 import { Panel, useTitle, Words } from "../components/ui";
-import { SAMPLE } from "../lib/sample";
+import { warmEngine } from "../lib/receipts";
+import { FORGED, SAMPLE } from "../lib/sample";
 
 /**
  * The landing page, in the order a judge reads it: the problem (hero), the
@@ -175,8 +177,11 @@ export function Home() {
   );
 }
 
-/** A real receipt next to the action that proves it, run in the visitor's own browser. */
+/** A real receipt next to the action that proves it, run in the visitor's own browser, with a forgery to try. */
 function ClaimAndCheck() {
+  const [forged, setForged] = useState(false);
+  useEffect(warmEngine, []);
+  const r = forged ? FORGED : SAMPLE;
   return (
     <section id="check">
       <div className="section-head">
@@ -186,28 +191,50 @@ function ClaimAndCheck() {
         </h2>
         <p>This is a receipt for a real payment on Zcash mainnet. Checking it needs no account and sends nothing about you anywhere.</p>
       </div>
+      <div className="seg" role="radiogroup" aria-label="Which receipt to check">
+        <button type="button" role="radio" aria-checked={!forged} className={!forged ? "on" : ""} onClick={() => setForged(false)}>
+          Genuine receipt
+        </button>
+        <button type="button" role="radio" aria-checked={forged} className={forged ? "on" : ""} onClick={() => setForged(true)}>
+          Forged copy
+        </button>
+      </div>
       <div className="check-grid">
-        <div className="panel quiet claim">
-          <p className="eyebrow">The claim</p>
+        <div className={`panel quiet claim${forged ? " forged" : ""}`}>
+          <p className="eyebrow">{forged ? "What the forgery claims" : "The claim"}</p>
           <p className="claim-score">
-            {SAMPLE.claim.amount}
+            {r.claim.amount}
             <small>ZEC</small>
           </p>
           <p className="claim-what">
-            was paid to <strong>{SAMPLE.claim.to}</strong> with the note <em>"{SAMPLE.claim.memo}"</em>, in a shielded transaction on
-            mainnet.
+            was paid to <strong>{r.claim.to}</strong> with the note <em>"{r.claim.memo}"</em>, in a shielded transaction on mainnet.
           </p>
-          <p className="small" style={{ margin: 0 }}>
-            <Link viewTransition to={`/check#${SAMPLE.receipt}`}>
-              Open it on the check page
-            </Link>
-          </p>
+          {forged ? (
+            <p className="small" style={{ margin: 0, color: "var(--ink-secondary)" }}>
+              The same receipt with one change: the amount raised from 0.001 to 1 ZEC. Everything else is untouched.
+            </p>
+          ) : (
+            <p className="small" style={{ margin: 0 }}>
+              <Link viewTransition to={`/check#${SAMPLE.receipt}`}>
+                Open it on the check page
+              </Link>
+            </p>
+          )}
         </div>
         <ReceiptCheck
-          receipt={SAMPLE.receipt}
+          key={forged ? "forged" : "genuine"}
+          receipt={r.receipt}
+          autoStart={forged}
           title="The check"
           eyebrow="In your browser"
-          intro={<>Reads the receipt, opens the one payment it names, and confirms the transaction is on the chain. A few seconds; nothing to install.</>}
+          button={forged ? "Check the forgery" : "Check this receipt"}
+          intro={
+            forged ? (
+              <>Same steps, same code. Watch where it fails.</>
+            ) : (
+              <>Reads the receipt, opens the one payment it names, and confirms the transaction is on the chain. A few seconds; nothing to install.</>
+            )
+          }
         />
       </div>
     </section>
