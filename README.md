@@ -64,8 +64,8 @@ payment reached *you*, compare the address; the check page and `unseal check --a
 
 ## Technology used
 
-- **Zcash Orchard and Ironwood** shielded pools. Receipts work on today's mainnet (Orchard, NU6.3) and on the NU7 testnet, where
-  new payments land in Ironwood.
+- **Zcash Orchard and Ironwood** shielded pools. Receipts work for both, on mainnet and testnet. Current wallets put new shielded
+  funds into Ironwood (our own mainnet test funds landed there), so both are needed today.
 - **librustzcash crates**, unchanged: `orchard` 0.16 (notes, keys, note encryption domains), `zcash_note_encryption` 0.5
   (`try_output_recovery_with_pkd_esk`, `try_note_decryption`, `try_output_recovery_with_ovk`), `zcash_primitives` 0.31
   (v5/v6 transaction parsing, ZIP 244 txids), `zcash_address` 0.14 (unified addresses and viewing keys).
