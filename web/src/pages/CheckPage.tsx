@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { ReceiptCheck } from "../components/ReceiptCheck";
 import { PageHead, Panel, useTitle } from "../components/ui";
@@ -93,6 +93,7 @@ export function CheckPage() {
 }
 
 function ReceiptInput({ text, setText, looksRight, onSubmit }: { text: string; setText: (s: string) => void; looksRight: boolean; onSubmit: () => void }) {
+  const id = useId().replace(/:/g, "");
   const showHint = text.trim().length > 0 && !looksRight;
   return (
     <form
@@ -102,18 +103,19 @@ function ReceiptInput({ text, setText, looksRight, onSubmit }: { text: string; s
       }}
     >
       <label className="field">
-        <span>Receipt or receipt link</span>
+        <span id={`${id}-label`}>Receipt or receipt link</span>
         <textarea
           className="receipt-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="zr1… or https://…/check#zr1…"
+          aria-labelledby={`${id}-label`}
           spellCheck={false}
           autoComplete="off"
           aria-invalid={showHint}
-          aria-describedby="receipt-help"
+          aria-describedby={`${id}-help`}
         />
-        <small id="receipt-help" className={showHint ? "bad" : ""}>
+        <small id={`${id}-help`} className={showHint ? "bad" : ""}>
           {showHint ? "Receipts start with zr1. Paste the whole thing; line breaks are fine." : "Receipts start with zr1 and are long; that's the transaction inside."}
         </small>
       </label>
@@ -143,12 +145,13 @@ function MatchAddress({ receipt, result }: { receipt: string; result: Checked | 
   return (
     <Panel className="glass" eyebrow="Optional" title="Was it paid to you?" level={2}>
       <label className="field" style={{ marginBottom: 0 }}>
-        <span>Your Zcash address</span>
+        <span id="match-label">Your Zcash address</span>
         <input
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="u1…"
+          aria-labelledby="match-label"
           spellCheck={false}
           autoComplete="off"
           aria-describedby="match-help"

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 
@@ -12,6 +13,11 @@ function devApi(): Plugin {
       server.middlewares.use(async (req, res, next) => {
         const m = req.url?.match(/^\/api\/([a-z]+)(?:\?|$)/);
         if (!m) return next();
+        if (!existsSync(`api/${m[1]}.ts`)) {
+          res.statusCode = 404;
+          res.setHeader("content-type", "application/json");
+          return res.end(JSON.stringify({ error: "not found" }));
+        }
         try {
           const mod = await server.ssrLoadModule(`/api/${m[1]}.ts`);
           await mod.default(req, res);
