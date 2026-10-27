@@ -10,7 +10,9 @@
 //! ephemeral secret (ZIP 212), which decrypts exactly that one output. The
 //! decryption only succeeds if the rebuilt note matches the output's on-chain
 //! commitment (`cmx`) and ephemeral key, so a receipt cannot lie about the
-//! amount, the recipient or the memo.
+//! amount, the recipient or the memo. A Sapling note is fixed by its recipient,
+//! value and `rseed` alone (ZIP 212 derives both its commitment randomness and
+//! its ephemeral secret from `rseed`), and is checked the same way against `cmu`.
 //!
 //! Disclosing `rseed` does not reveal the note's nullifier (that needs the
 //! recipient's nullifier key), so a receipt cannot be used to see when or
@@ -28,7 +30,15 @@ use orchard::{
     value::NoteValue,
     Action, Address, Note, NoteVersion,
 };
-use zcash_address::unified::{self, Container, Encoding};
+use sapling_crypto::{
+    note_encryption::{SaplingDomain, Zip212Enforcement},
+    zip32::DiversifiableFullViewingKey,
+    PaymentAddress, Rseed,
+};
+use zcash_address::{
+    unified::{self, Container, Encoding},
+    ConversionError, TryFromAddress, ZcashAddress,
+};
 use zcash_note_encryption::{
     try_note_decryption, try_output_recovery_with_ovk, try_output_recovery_with_pkd_esk, Domain,
 };
@@ -62,10 +72,8 @@ pub enum Error {
     Mismatch,
     #[error("That is not a viewing key this tool can read. Use a unified full viewing key (uview… or uviewtest…).")]
     BadViewingKey,
-    #[error(
-        "The viewing key has no Orchard part, so it cannot find Orchard or Ironwood payments."
-    )]
-    NoOrchardKey,
+    #[error("The viewing key has no shielded part, so it cannot find shielded payments.")]
+    NoShieldedKey,
     #[error("The viewing key is for {0}, but the transaction is on {1}.")]
     WrongNetwork(&'static str, &'static str),
 }
@@ -77,6 +85,8 @@ pub enum Pool {
     Orchard,
     /// Ironwood: the newer pool where wallets now put new shielded payments.
     Ironwood,
+    /// Sapling: the older pool, still used by many wallets and `zs1` addresses.
+    Sapling,
 }
 
 impl Pool {
@@ -84,12 +94,14 @@ impl Pool {
         match self {
             Pool::Orchard => "Orchard",
             Pool::Ironwood => "Ironwood",
+            Pool::Sapling => "Sapling",
         }
     }
-    fn note_version(self) -> NoteVersion {
+    fn note_version(self) -> Option<NoteVersion> {
         match self {
-            Pool::Orchard => NoteVersion::V2,
-            Pool::Ironwood => NoteVersion::V3,
+            Pool::Orchard => Some(NoteVersion::V2),
+            Pool::Ironwood => Some(NoteVersion::V3),
+            Pool::Sapling => None,
         }
     }
     fn to_byte(self) -> u8 {
@@ -99,6 +111,7 @@ impl Pool {
         match b {
             0 => Some(Pool::Orchard),
             1 => Some(Pool::Ironwood),
+            2 => Some(Pool::Sapling),
             _ => None,
         }
     }
@@ -128,7 +141,8 @@ pub struct Receipt {
     pub height: u32,
     /// Index of the output (action) within the pool's bundle.
     pub action_index: u16,
-    /// Raw Orchard address of the recipient.
+    /// Raw address of the recipient: an Orchard receiver for Orchard and
+    /// Ironwood, a Sapling payment address for Sapling (both 43 bytes).
     pub recipient: [u8; 43],
     pub value: u64,
     pub rseed: [u8; 32],
@@ -259,37 +273,57 @@ fn bundle_for(
     match pool {
         Pool::Orchard => tx.orchard_bundle(),
         Pool::Ironwood => tx.ironwood_bundle(),
+        Pool::Sapling => None,
     }
 }
+
+/// Sapling outputs on chain have had to use ZIP 212 note plaintexts since Canopy
+/// (2020), so receipts only cover those; their `rseed` fixes the ephemeral secret.
+const SAPLING_ZIP212: Zip212Enforcement = Zip212Enforcement::On;
 
 fn parse_tx(raw: &[u8], network: NetworkType, height: u32) -> Result<Transaction, Error> {
     let branch = BranchId::for_height(&params(network), BlockHeight::from_u32(height));
     Transaction::read(raw, branch).map_err(|_| Error::BadTransaction)
 }
 
-/// Encodes a raw Orchard receiver as a unified address with just that receiver.
-pub fn recipient_address(network: NetworkType, raw: &[u8; 43]) -> String {
+fn receiver(pool: Pool, raw: &[u8; 43]) -> unified::Receiver {
+    match pool {
+        Pool::Orchard | Pool::Ironwood => unified::Receiver::Orchard(*raw),
+        Pool::Sapling => unified::Receiver::Sapling(*raw),
+    }
+}
+
+/// Encodes a raw receiver as a unified address with just that receiver.
+pub fn recipient_address(network: NetworkType, pool: Pool, raw: &[u8; 43]) -> String {
     let ua = unified::Address::try_from_items(
         unified::Revision::R0,
-        vec![unified::Uitem::Data(unified::Receiver::Orchard(*raw))],
+        vec![unified::Uitem::Data(receiver(pool, raw))],
     )
-    .expect("one Orchard receiver is a valid unified address");
+    .expect("one shielded receiver is a valid unified address");
     ua.encode(&network)
 }
 
-/// Does this unified address contain the receipt's recipient?
-/// Lets a merchant check "was this paid to me?" against the address they published.
-pub fn address_contains(address: &str, network: NetworkType, raw: &[u8; 43]) -> bool {
-    match unified::Address::decode(address.trim()) {
-        Ok((net, _, ua)) => {
-            net == network
-                && ua
-                    .items()
-                    .iter()
-                    .any(|r| matches!(r, unified::Receiver::Orchard(b) if b == raw))
-        }
-        Err(_) => false,
+/// The shielded receivers an address carries, whatever its encoding.
+struct Receivers(Vec<unified::Receiver>);
+
+impl TryFromAddress for Receivers {
+    type Error = ();
+    fn try_from_sapling(_: NetworkType, data: [u8; 43]) -> Result<Self, ConversionError<()>> {
+        Ok(Receivers(vec![unified::Receiver::Sapling(data)]))
     }
+    fn try_from_unified(_: NetworkType, ua: unified::Address) -> Result<Self, ConversionError<()>> {
+        Ok(Receivers(ua.items()))
+    }
+}
+
+/// Does this address (unified, or a Sapling `zs1…`) contain the receipt's recipient?
+/// Lets a merchant check "was this paid to me?" against the address they published.
+pub fn address_contains(address: &str, network: NetworkType, pool: Pool, raw: &[u8; 43]) -> bool {
+    let want = receiver(pool, raw);
+    ZcashAddress::try_from_encoded(address.trim())
+        .ok()
+        .and_then(|a| a.convert_if_network::<Receivers>(network).ok())
+        .is_some_and(|r| r.0.contains(&want))
 }
 
 fn open_with_rseed<V: DomainVersion, A>(
@@ -311,7 +345,7 @@ where
         NoteValue::from_raw(value),
         rho,
         rseed,
-        pool.note_version(),
+        pool.note_version()?,
     ))?;
     let esk = NoteEncryptionDomain::<V>::derive_esk(&claimed)?;
     let pk_d = NoteEncryptionDomain::<V>::get_pk_d(&claimed);
@@ -321,6 +355,28 @@ where
     // seed, not the value, so the decrypted note must be compared in full
     // with the claimed one; otherwise a receipt could overstate the amount.
     (note == claimed && addr.to_raw_address_bytes() == *recipient).then_some((note, addr, memo))
+}
+
+/// The Sapling counterpart of `open_with_rseed`.
+fn open_sapling<A: sapling_crypto::bundle::Authorization>(
+    output: &sapling_crypto::bundle::OutputDescription<A::OutputProof>,
+    recipient: &[u8; 43],
+    value: u64,
+    rseed: [u8; 32],
+) -> Option<(sapling_crypto::Note, PaymentAddress, [u8; 512])> {
+    let addr = PaymentAddress::from_bytes(recipient)?;
+    let claimed = sapling_crypto::Note::from_parts(
+        addr,
+        sapling_crypto::value::NoteValue::from_raw(value),
+        Rseed::AfterZip212(rseed),
+    );
+    let esk = SaplingDomain::derive_esk(&claimed)?;
+    let pk_d = SaplingDomain::get_pk_d(&claimed);
+    let domain = SaplingDomain::new(SAPLING_ZIP212);
+    let (note, addr, memo) = try_output_recovery_with_pkd_esk(&domain, pk_d, esk, output)?;
+    // As for Orchard: the decrypted note must be the claimed one in full.
+    (note == claimed && note.value().inner() == value && addr.to_bytes() == *recipient)
+        .then_some((note, addr, memo))
 }
 
 /// The ID of the transaction inside a receipt, computed from its bytes.
@@ -334,9 +390,25 @@ pub fn transaction_id(r: &Receipt) -> Result<String, Error> {
 /// confirm on chain that `Proven::txid` was mined at `Proven::height`.
 pub fn verify(r: &Receipt) -> Result<Proven, Error> {
     let tx = parse_tx(&r.tx, r.network, r.height)?;
+    let i = r.action_index as usize;
+    if r.pool == Pool::Sapling {
+        let outputs = tx
+            .sapling_bundle()
+            .map(|b| b.shielded_outputs())
+            .filter(|o| !o.is_empty())
+            .ok_or(Error::NoBundle(r.pool.name()))?;
+        let output = outputs.get(i).ok_or(Error::NoSuchOutput(i))?;
+        let (_, _, memo) = open_sapling::<sapling_crypto::bundle::Authorized>(
+            output,
+            &r.recipient,
+            r.value,
+            r.rseed,
+        )
+        .ok_or(Error::Mismatch)?;
+        return Ok(proven(r, &tx, outputs.len(), &memo));
+    }
     let bundle = bundle_for(&tx, r.pool).ok_or(Error::NoBundle(r.pool.name()))?;
     let actions = bundle.actions();
-    let i = r.action_index as usize;
     let action = actions.get(i).ok_or(Error::NoSuchOutput(i))?;
     let opened = match r.pool {
         Pool::Orchard => open_with_rseed::<orchard::note_encryption::OrchardVersion, _>(
@@ -353,19 +425,24 @@ pub fn verify(r: &Receipt) -> Result<Proven, Error> {
             r.value,
             r.rseed,
         ),
+        Pool::Sapling => None,
     };
     let (_, _, memo) = opened.ok_or(Error::Mismatch)?;
-    Ok(Proven {
+    Ok(proven(r, &tx, actions.len(), &memo))
+}
+
+fn proven(r: &Receipt, tx: &Transaction, count: usize, memo: &[u8; 512]) -> Proven {
+    Proven {
         txid: tx.txid().to_string(),
         height: r.height,
         network: r.network,
         pool: r.pool,
-        action_index: i,
-        action_count: actions.len(),
+        action_index: r.action_index as usize,
+        action_count: count,
         value: r.value,
-        recipient: recipient_address(r.network, &r.recipient),
-        memo: Memo::from_bytes(&memo),
-    })
+        recipient: recipient_address(r.network, r.pool, &r.recipient),
+        memo: Memo::from_bytes(memo),
+    }
 }
 
 /// Whether the viewing key's owner received or sent a payment.
@@ -387,19 +464,35 @@ pub struct Found {
     pub receipt: Receipt,
 }
 
-/// Reads the Orchard part of a unified full viewing key.
-pub fn parse_viewing_key(ufvk: &str) -> Result<(NetworkType, FullViewingKey), Error> {
+/// The shielded parts of a unified full viewing key.
+pub struct ViewingKeys {
+    pub orchard: Option<FullViewingKey>,
+    pub sapling: Option<DiversifiableFullViewingKey>,
+}
+
+/// Reads the Orchard and Sapling parts of a unified full viewing key.
+pub fn parse_viewing_key(ufvk: &str) -> Result<(NetworkType, ViewingKeys), Error> {
     let (net, _, ufvk) = unified::Ufvk::decode(ufvk.trim()).map_err(|_| Error::BadViewingKey)?;
-    let bytes = ufvk
-        .items()
-        .into_iter()
-        .find_map(|i| match i {
-            unified::Fvk::Orchard(b) => Some(b),
-            _ => None,
-        })
-        .ok_or(Error::NoOrchardKey)?;
-    let fvk = FullViewingKey::from_bytes(&bytes).ok_or(Error::BadViewingKey)?;
-    Ok((net, fvk))
+    let mut keys = ViewingKeys {
+        orchard: None,
+        sapling: None,
+    };
+    for item in ufvk.items() {
+        match item {
+            unified::Fvk::Orchard(b) => {
+                keys.orchard = Some(FullViewingKey::from_bytes(&b).ok_or(Error::BadViewingKey)?)
+            }
+            unified::Fvk::Sapling(b) => {
+                keys.sapling =
+                    Some(DiversifiableFullViewingKey::from_bytes(&b).ok_or(Error::BadViewingKey)?)
+            }
+            _ => {}
+        }
+    }
+    if keys.orchard.is_none() && keys.sapling.is_none() {
+        return Err(Error::NoShieldedKey);
+    }
+    Ok((net, keys))
 }
 
 fn scan<'a, V: DomainVersion, A: 'a>(
@@ -451,7 +544,7 @@ fn scan<'a, V: DomainVersion, A: 'a>(
             pool,
             action_index: i,
             value: note.value().inner(),
-            recipient: recipient_address(network, &recipient),
+            recipient: recipient_address(network, pool, &recipient),
             memo: Memo::from_bytes(&memo),
             receipt: Receipt {
                 network,
@@ -467,12 +560,80 @@ fn scan<'a, V: DomainVersion, A: 'a>(
     }
 }
 
+/// The Sapling counterpart of `scan`.
+fn scan_sapling<A: sapling_crypto::bundle::Authorization>(
+    outputs: &[sapling_crypto::bundle::OutputDescription<A::OutputProof>],
+    dfvk: &DiversifiableFullViewingKey,
+    network: NetworkType,
+    height: u32,
+    raw_tx: &[u8],
+    out: &mut Vec<Found>,
+) {
+    use sapling_crypto::keys::PreparedIncomingViewingKey;
+    let ivk = PreparedIncomingViewingKey::new(&dfvk.to_ivk(Scope::External));
+    let internal = PreparedIncomingViewingKey::new(&dfvk.to_ivk(Scope::Internal));
+    let ovk = dfvk.to_ovk(Scope::External);
+    let domain = SaplingDomain::new(SAPLING_ZIP212);
+    for (i, o) in outputs.iter().enumerate() {
+        let (direction, (note, addr, memo)) = if let Some(h) = try_note_decryption(&domain, &ivk, o)
+        {
+            (Direction::Received, h)
+        } else if let Some(h) =
+            try_output_recovery_with_ovk(&domain, &ovk, o, o.cv(), o.out_ciphertext())
+        {
+            if try_note_decryption(&domain, &internal, o).is_some() {
+                continue;
+            }
+            (Direction::Sent, h)
+        } else {
+            continue;
+        };
+        // Only ZIP 212 notes can be opened from a receipt.
+        let Rseed::AfterZip212(rseed) = *note.rseed() else {
+            continue;
+        };
+        let recipient = addr.to_bytes();
+        let value = note.value().inner();
+        out.push(Found {
+            direction,
+            pool: Pool::Sapling,
+            action_index: i,
+            value,
+            recipient: recipient_address(network, Pool::Sapling, &recipient),
+            memo: Memo::from_bytes(&memo),
+            receipt: Receipt {
+                network,
+                pool: Pool::Sapling,
+                height,
+                action_index: i as u16,
+                recipient,
+                value,
+                rseed,
+                tx: raw_tx.to_vec(),
+            },
+        });
+    }
+}
+
 /// Finds every payment in a transaction that the viewing key received or sent,
 /// each with a ready receipt. Runs entirely locally; the key is never sent anywhere.
 pub fn find_payments(ufvk: &str, raw_tx: &[u8], height: u32) -> Result<Vec<Found>, Error> {
-    let (network, fvk) = parse_viewing_key(ufvk)?;
+    let (network, keys) = parse_viewing_key(ufvk)?;
     let tx = parse_tx(raw_tx, network, height)?;
     let mut out = Vec::new();
+    if let (Some(b), Some(dfvk)) = (tx.sapling_bundle(), &keys.sapling) {
+        scan_sapling::<sapling_crypto::bundle::Authorized>(
+            b.shielded_outputs(),
+            dfvk,
+            network,
+            height,
+            raw_tx,
+            &mut out,
+        );
+    }
+    let Some(fvk) = keys.orchard else {
+        return Ok(out);
+    };
     if let Some(b) = tx.orchard_bundle() {
         scan::<orchard::note_encryption::OrchardVersion, _>(
             b.actions().iter(),
@@ -607,6 +768,7 @@ mod tests {
                 &[],
                 &mut out,
             ),
+            Pool::Sapling => unreachable!("Sapling has its own tests"),
         }
         out
     }
@@ -628,6 +790,7 @@ mod tests {
                 r.value,
                 r.rseed,
             ),
+            Pool::Sapling => unreachable!("Sapling has its own tests"),
         }
     }
 
@@ -806,12 +969,44 @@ mod tests {
     #[test]
     fn addresses_and_memos() {
         let raw = f_addr();
-        let ua = recipient_address(NetworkType::Main, &raw);
+        let ua = recipient_address(NetworkType::Main, Pool::Orchard, &raw);
         assert!(ua.starts_with("u1"));
-        assert!(address_contains(&ua, NetworkType::Main, &raw));
-        assert!(!address_contains(&ua, NetworkType::Test, &raw));
-        assert!(!address_contains(&ua, NetworkType::Main, &f_addr()));
-        assert!(!address_contains("not an address", NetworkType::Main, &raw));
+        assert!(address_contains(
+            &ua,
+            NetworkType::Main,
+            Pool::Orchard,
+            &raw
+        ));
+        assert!(address_contains(
+            &ua,
+            NetworkType::Main,
+            Pool::Ironwood,
+            &raw
+        ));
+        assert!(!address_contains(
+            &ua,
+            NetworkType::Main,
+            Pool::Sapling,
+            &raw
+        ));
+        assert!(!address_contains(
+            &ua,
+            NetworkType::Test,
+            Pool::Orchard,
+            &raw
+        ));
+        assert!(!address_contains(
+            &ua,
+            NetworkType::Main,
+            Pool::Orchard,
+            &f_addr()
+        ));
+        assert!(!address_contains(
+            "not an address",
+            NetworkType::Main,
+            Pool::Orchard,
+            &raw
+        ));
         let mut empty = [0u8; 512];
         empty[0] = 0xF6;
         assert_eq!(Memo::from_bytes(&empty), Memo::Empty);
@@ -823,6 +1018,203 @@ mod tests {
         assert_eq!(format_zec(250_000_000), "2.5");
         assert_eq!(format_zec(100_000_000), "1");
         assert_eq!(format_zec(15_000), "0.00015");
+    }
+}
+
+#[cfg(test)]
+mod sapling {
+    use super::*;
+    use sapling_crypto::{
+        builder::{Builder, BundleType},
+        bundle::{GrothProofBytes, OutputDescription},
+        prover::mock::{MockOutputProver, MockSpendProver},
+        zip32::ExtendedSpendingKey,
+        Anchor,
+    };
+    use zcash_address::ToAddress;
+
+    fn dfvk(seed: u8) -> DiversifiableFullViewingKey {
+        ExtendedSpendingKey::master(&[seed; 32])
+            .unwrap()
+            .to_diversifiable_full_viewing_key()
+    }
+
+    fn memo(text: &str) -> [u8; 512] {
+        let mut m = [0u8; 512];
+        m[..text.len()].copy_from_slice(text.as_bytes());
+        m
+    }
+
+    struct Fixture {
+        outputs: Vec<OutputDescription<GrothProofBytes>>,
+        payer: DiversifiableFullViewingKey,
+        shop: DiversifiableFullViewingKey,
+        other_addr: PaymentAddress,
+    }
+
+    /// Sapling outputs where `payer` pays a shop 2.5 ZEC and someone else 0.99 ZEC.
+    fn fixture() -> Fixture {
+        let mut rng = rand::rng();
+        let (payer, shop, other) = (dfvk(1), dfvk(2), dfvk(3));
+        let ovk = Some(payer.to_ovk(Scope::External));
+        let mut b = Builder::new(SAPLING_ZIP212, BundleType::DEFAULT, Anchor::empty_tree());
+        b.add_output(
+            ovk,
+            shop.default_address().1,
+            sapling_crypto::value::NoteValue::from_raw(250_000_000),
+            memo("Invoice #1043"),
+        )
+        .unwrap();
+        b.add_output(
+            ovk,
+            other.default_address().1,
+            sapling_crypto::value::NoteValue::from_raw(99_000_000),
+            memo("private"),
+        )
+        .unwrap();
+        let (bundle, _) = b
+            .build::<MockSpendProver, MockOutputProver, _, i64>(&[], &mut rng)
+            .unwrap()
+            .unwrap();
+        let bundle = bundle.create_proofs(&MockSpendProver, &MockOutputProver, &mut rng, ());
+        Fixture {
+            outputs: bundle.shielded_outputs().to_vec(),
+            payer,
+            shop,
+            other_addr: other.default_address().1,
+        }
+    }
+
+    fn found(f: &Fixture, key: &DiversifiableFullViewingKey) -> Vec<Found> {
+        let mut out = Vec::new();
+        scan_sapling::<sapling_crypto::bundle::Authorized>(
+            &f.outputs,
+            key,
+            NetworkType::Main,
+            1,
+            &[],
+            &mut out,
+        );
+        out
+    }
+
+    fn open(f: &Fixture, r: &Receipt) -> bool {
+        f.outputs
+            .get(r.action_index as usize)
+            .and_then(|o| {
+                open_sapling::<sapling_crypto::bundle::Authorized>(
+                    o,
+                    &r.recipient,
+                    r.value,
+                    r.rseed,
+                )
+            })
+            .is_some()
+    }
+
+    #[test]
+    fn sapling_receipts() {
+        let f = fixture();
+        let shop = found(&f, &f.shop);
+        assert_eq!(shop.len(), 1);
+        assert_eq!(shop[0].direction, Direction::Received);
+        assert_eq!(shop[0].pool, Pool::Sapling);
+        assert_eq!(shop[0].value, 250_000_000);
+        assert_eq!(shop[0].memo, Memo::Text("Invoice #1043".into()));
+        let paid = found(&f, &f.payer);
+        assert_eq!(paid.len(), 2);
+        assert!(paid.iter().all(|p| p.direction == Direction::Sent));
+
+        // Every receipt the payer or shop can make opens exactly its own output.
+        for p in shop.iter().chain(&paid) {
+            assert!(open(&f, &p.receipt));
+        }
+        let r = shop[0].receipt.clone();
+        let with_tx = Receipt {
+            tx: vec![5; 100],
+            ..r.clone()
+        };
+        assert_eq!(Receipt::decode(&with_tx.encode()).unwrap(), with_tx);
+
+        // Raised amount, other recipient, other seed, other output: all rejected.
+        assert!(!open(
+            &f,
+            &Receipt {
+                value: r.value + 1,
+                ..r.clone()
+            }
+        ));
+        assert!(!open(
+            &f,
+            &Receipt {
+                value: r.value - 1,
+                ..r.clone()
+            }
+        ));
+        assert!(!open(
+            &f,
+            &Receipt {
+                recipient: f.other_addr.to_bytes(),
+                ..r.clone()
+            }
+        ));
+        let mut seed = r.rseed;
+        seed[0] ^= 1;
+        assert!(!open(
+            &f,
+            &Receipt {
+                rseed: seed,
+                ..r.clone()
+            }
+        ));
+        let other = 1 - r.action_index;
+        assert!(!open(
+            &f,
+            &Receipt {
+                action_index: other,
+                ..r.clone()
+            }
+        ));
+    }
+
+    #[test]
+    fn sapling_addresses() {
+        let addr = dfvk(2).default_address().1;
+        let raw = addr.to_bytes();
+        let ua = recipient_address(NetworkType::Main, Pool::Sapling, &raw);
+        assert!(ua.starts_with("u1"));
+        assert!(address_contains(
+            &ua,
+            NetworkType::Main,
+            Pool::Sapling,
+            &raw
+        ));
+        assert!(!address_contains(
+            &ua,
+            NetworkType::Main,
+            Pool::Orchard,
+            &raw
+        ));
+        assert!(!address_contains(
+            &ua,
+            NetworkType::Test,
+            Pool::Sapling,
+            &raw
+        ));
+        let zs = ZcashAddress::from_sapling(NetworkType::Main, raw).encode();
+        assert!(zs.starts_with("zs1"));
+        assert!(address_contains(
+            &zs,
+            NetworkType::Main,
+            Pool::Sapling,
+            &raw
+        ));
+        assert!(!address_contains(
+            &zs,
+            NetworkType::Main,
+            Pool::Sapling,
+            &dfvk(3).default_address().1.to_bytes()
+        ));
     }
 }
 

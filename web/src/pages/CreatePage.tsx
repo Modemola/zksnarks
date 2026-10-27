@@ -17,7 +17,7 @@ function problems(key: string, txid: string) {
   const k = compact(key);
   if (!k) p.key = "Paste your wallet's unified full viewing key.";
   else if (k.startsWith("uivk")) p.key = "That is an incoming viewing key. Use the full viewing key (uview…), which can also find payments you sent.";
-  else if (k.startsWith("zxview") || k.startsWith("zviews")) p.key = "That is a Sapling-only key. Receipts need a unified key (uview…) with an Orchard part.";
+  else if (k.startsWith("zxview") || k.startsWith("zviews")) p.key = "That is an older Sapling viewing key. Paste the unified full viewing key (uview…) from the same wallet; it covers Sapling too.";
   else if (!KEY_RE.test(k)) p.key = "A unified full viewing key starts with uview1 (mainnet) or uviewtest1 (testnet).";
   const t = compact(txid);
   if (!t) p.txid = "Paste the transaction ID from your wallet's history.";
@@ -174,8 +174,8 @@ export function CreatePage() {
             <Panel eyebrow="Step 2" title={found.payments.length ? "Choose the payment" : "No payments found"}>
               {found.payments.length === 0 ? (
                 <p className="small" style={{ margin: 0, color: "var(--ink-secondary)" }}>
-                  This key didn't send or receive any Orchard or Ironwood payment in that transaction. Check that the key is from the wallet that
-                  made or got the payment. Sapling payments are not supported yet.
+                  This key didn't send or receive any shielded payment in that transaction. Check that the key is from the wallet that made or
+                  got the payment. Transparent payments can't have receipts: they are public already.
                 </p>
               ) : (
                 <ul className="payments">

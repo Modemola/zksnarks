@@ -211,7 +211,8 @@ fn proven_json(p: &Proven) -> Value {
 fn check(cli: &Cli, arg: &str, address: Option<&str>, offline: bool) -> Result<(), String> {
     let receipt = Receipt::decode(&read_arg(arg)?).map_err(|e| e.to_string())?;
     let proven = verify(&receipt).map_err(|e| e.to_string())?;
-    let paid_to_you = address.map(|a| address_contains(a, receipt.network, &receipt.recipient));
+    let paid_to_you =
+        address.map(|a| address_contains(a, receipt.network, receipt.pool, &receipt.recipient));
 
     // Confirm the transaction is in the block the receipt names, asking for a
     // whole window of blocks so the relay can't tell which payment this is.
@@ -419,7 +420,7 @@ fn inspect(cli: &Cli, arg: &str) -> Result<(), String> {
         "height": r.height,
         "actionIndex": r.action_index,
         "claimedValueZec": format_zec(r.value),
-        "recipient": recipient_address(r.network, &r.recipient),
+        "recipient": recipient_address(r.network, r.pool, &r.recipient),
         "transactionBytes": r.tx.len(),
         "checked": false,
     });
@@ -437,7 +438,7 @@ fn inspect(cli: &Cli, arg: &str) -> Result<(), String> {
         println!(
             "  Claims     {} ZEC to {}",
             format_zec(r.value),
-            recipient_address(r.network, &r.recipient)
+            recipient_address(r.network, r.pool, &r.recipient)
         );
         println!("  Tx bytes   {}", r.tx.len());
     }

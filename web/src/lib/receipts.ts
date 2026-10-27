@@ -42,7 +42,7 @@ export interface Proven {
   txid: string;
   height: number;
   network: Network;
-  pool: "Orchard" | "Ironwood";
+  pool: "Orchard" | "Ironwood" | "Sapling";
   actionIndex: number;
   actionCount: number;
   value: number;
@@ -151,7 +151,9 @@ export async function checkReceipt(text: string, onStep: (steps: Step[]) => void
       }
       throw e;
     }
-    set("open", "done", `Payment ${proven.actionIndex + 1} of ${proven.actionCount}; the other ${proven.actionCount - 1} stay sealed`);
+    const others = proven.actionCount - 1;
+    const sealed = others === 0 ? "the only one in its pool" : others === 1 ? "the other one stays sealed" : `the other ${others} stay sealed`;
+    set("open", "done", `Payment ${proven.actionIndex + 1} of ${proven.actionCount}; ${sealed}`);
     current = "match";
     set("match", "running");
     await pause();
@@ -184,7 +186,7 @@ export async function checkReceipt(text: string, onStep: (steps: Step[]) => void
 
 export interface Payment {
   direction: "received" | "sent";
-  pool: "Orchard" | "Ironwood";
+  pool: "Orchard" | "Ironwood" | "Sapling";
   actionIndex: number;
   value: number;
   valueZec: string;

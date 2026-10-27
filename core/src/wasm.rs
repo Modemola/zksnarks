@@ -109,6 +109,6 @@ pub fn viewing_key_network(ufvk: &str) -> String {
 #[wasm_bindgen(js_name = addressMatches)]
 pub fn address_matches(address: &str, receipt: &str) -> bool {
     Receipt::decode(receipt)
-        .map(|r| address_contains(address, r.network, &r.recipient))
+        .map(|r| address_contains(address, r.network, r.pool, &r.recipient))
         .unwrap_or(false)
 }

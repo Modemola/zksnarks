@@ -67,7 +67,8 @@ export function HowPage() {
                   ephemeral secret esk is derived from rseed and ρ, so the checker computes esk, the shared secret with the address's
                   transmission key, and the symmetric key; decrypts the 580-byte note ciphertext; and the library confirms the decrypted note
                   commits to the on-chain cmx and that esk reproduces the published ephemeral key. The note is then compared in full with
-                  the claimed one. The transaction ID is recomputed with ZIP 244 from the raw bytes. Disclosing rseed does not reveal the
+                  the claimed one. A Sapling note is (address, value, rseed): ZIP 212 derives both its commitment randomness and esk from
+                  rseed alone, and the same checks run against its cmu. The transaction ID is recomputed with ZIP 244 from the raw bytes. Disclosing rseed does not reveal the
                   nullifier, which needs the recipient's nullifier key, so a receipt can't be used to see when the note is spent. This is the
                   output half of what ZIP 311 (payment disclosures, still a draft) describes.
                 </p>
@@ -88,7 +89,7 @@ export function HowPage() {
                   </thead>
                   <tbody>
                     {[
-                      ["Format version, network, pool", "3 bytes", "Mainnet or testnet; Orchard or Ironwood"],
+                      ["Format version, network, pool", "3 bytes", "Mainnet or testnet; Orchard, Ironwood or Sapling"],
                       ["Block height", "4 bytes", "Where to look for the transaction"],
                       ["Payment number", "2 bytes", "Which payment in the transaction"],
                       ["Recipient address", "43 bytes", "Who was paid"],
@@ -113,7 +114,7 @@ export function HowPage() {
               <Panel eyebrow="For developers" title="Use it in your wallet or shop">
                 <p className="small" style={{ marginTop: 0, color: "var(--ink-secondary)" }}>
                   The receipt engine is a small Rust library, <code>zreceipt</code>, built on the official <code>orchard</code>,{" "}
-                  <code>zcash_primitives</code> and <code>zcash_note_encryption</code> crates. The same code runs natively and in the browser as
+                  <code>sapling-crypto</code>, <code>zcash_primitives</code> and <code>zcash_note_encryption</code> crates. The same code runs natively and in the browser as
                   WebAssembly.
                 </p>
                 <pre>
@@ -174,7 +175,8 @@ unseal inspect zr1…                          # read without checking`}</code>
             <ul className="small" style={{ margin: 0, paddingLeft: "1.1rem", color: "var(--ink-secondary)" }}>
               <li>Orchard payments, mainnet and testnet</li>
               <li>Ironwood payments, mainnet and testnet (the demo payment is one)</li>
-              <li>Not yet: Sapling and transparent payments</li>
+              <li>Sapling payments made since 2020 (ZIP 212), mainnet and testnet</li>
+              <li>Not applicable: transparent payments, which are public already</li>
             </ul>
           </Panel>
           <Panel className="quiet" eyebrow="Ready?">
