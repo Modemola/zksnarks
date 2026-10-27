@@ -206,36 +206,6 @@ export function Aurora() {
   );
 }
 
-const Check = () => (
-  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <circle cx="16" cy="16" r="11" />
-    <path d="M11 16.5l3.5 3.5L21.5 12" strokeLinecap="square" />
-  </svg>
-);
-const Lock = () => (
-  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2.2">
-    <rect x="7" y="14" width="18" height="13" rx="3" />
-    <path d="M11 14v-3a5 5 0 0110 0v3" />
-  </svg>
-);
-
-/** A turning glass cube with a glowing core: page art without WebGL. Pass an empty label when it's decoration. */
-export function GlassCube({ label = "" }: { label?: string }) {
-  return (
-    <div className="cube-scene" {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}>
-      <div className="cube">
-        <div className="face"><Check /></div>
-        <div className="face"><div className="dots" /></div>
-        <div className="face"><Lock /></div>
-        <div className="face"><div className="dots" /></div>
-        <div className="face"><Check /></div>
-        <div className="face"><Lock /></div>
-        <div className="core" />
-      </div>
-    </div>
-  );
-}
-
 const HEX = "0123456789abcdef";
 
 /** Text that decodes from random characters into its real value, left to right. */

@@ -1,6 +1,7 @@
 import type React from "react";
 import { Link } from "react-router-dom";
-import { GlassCube, Reveal } from "../components/motion";
+import { Reveal } from "../components/motion";
+import { WaxSeal } from "../components/WaxSeal";
 import { PageHead, Panel, useTitle } from "../components/ui";
 
 /** The explainer: three promises, the steps, what a receipt holds, why it can't lie, and the trust model. */
@@ -8,7 +9,7 @@ export function HowPage() {
   useTitle("How it works");
   return (
     <>
-      <PageHead eyebrow="How it works" title={<>Small enough to share, <em>hard to fake</em></>} art={<GlassCube />}>
+      <PageHead eyebrow="How it works" title={<>Small enough to share, <em>hard to fake</em></>} art={<WaxSeal size={180} />}>
         A receipt holds the three facts that define one shielded payment, plus the public transaction it sits in. With those, anyone's
         browser can open that payment and nothing else, and check it against the chain.
       </PageHead>
