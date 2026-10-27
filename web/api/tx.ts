@@ -1,5 +1,5 @@
-import { getTransaction } from "./_lib/lwd";
-import { json, network, send, upstream, type Req, type Res } from "./_lib/http";
+import { getTransaction } from "./_lib/lwd.js";
+import { json, network, send, upstream, type Req, type Res } from "./_lib/http.js";
 
 /**
  * POST /api/tx  { network, txid }

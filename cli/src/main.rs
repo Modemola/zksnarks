@@ -304,11 +304,12 @@ fn create(
     height: Option<u32>,
     link_base: &str,
 ) -> Result<(), String> {
-    let key = read_arg(key)?;
+    // Keys never contain whitespace; drop any that copying added (line breaks, spaces).
+    let key: String = read_arg(key)?.split_whitespace().collect();
     let (network, _) = parse_viewing_key(&key).map_err(|e| e.to_string())?;
     let (raw, height) = match (txid, raw_tx) {
         (Some(txid), _) => {
-            let txid = txid.trim().to_lowercase();
+            let txid: String = txid.split_whitespace().collect::<String>().to_lowercase();
             if txid.len() != 64 || !txid.chars().all(|c| c.is_ascii_hexdigit()) {
                 return Err("a transaction ID is 64 characters of 0-9 and a-f".into());
             }
@@ -351,7 +352,7 @@ fn create(
             tx: raw.clone(),
         };
         let got = transaction_id(&r).map_err(|e| e.to_string())?;
-        if got != txid.trim().to_lowercase() {
+        if got != txid.split_whitespace().collect::<String>().to_lowercase() {
             return Err(format!(
                 "the relay returned a different transaction ({got}); not using it"
             ));

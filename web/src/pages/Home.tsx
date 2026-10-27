@@ -191,11 +191,11 @@ function ClaimAndCheck() {
         </h2>
         <p>This is a receipt for a real payment on Zcash mainnet. Checking it needs no account and sends nothing about you anywhere.</p>
       </div>
-      <div className="seg" role="radiogroup" aria-label="Which receipt to check">
-        <button type="button" role="radio" aria-checked={!forged} className={!forged ? "on" : ""} onClick={() => setForged(false)}>
+      <div className="seg" role="group" aria-label="Which receipt to check">
+        <button type="button" aria-pressed={!forged} className={!forged ? "on" : ""} onClick={() => setForged(false)}>
           Genuine receipt
         </button>
-        <button type="button" role="radio" aria-checked={forged} className={forged ? "on" : ""} onClick={() => setForged(true)}>
+        <button type="button" aria-pressed={forged} className={forged ? "on" : ""} onClick={() => setForged(true)}>
           Forged copy
         </button>
       </div>
