@@ -188,6 +188,29 @@ export function Hash({ value }: { value: string }) {
   );
 }
 
+/** A long value (address, transaction ID) shown plainly, with a copy button. No animation, so it reads right on video. */
+export function Plain({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="hash">
+      <span>{value}</span>
+      <button
+        type="button"
+        className="copy"
+        onClick={() =>
+          navigator.clipboard?.writeText(value).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          })
+        }
+        aria-label="Copy to clipboard"
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </span>
+  );
+}
+
 /** The stamp that lands on a finished result. */
 export function Stamp({ value, label, delay = 1.2 }: { value: string; label: string; delay?: number }) {
   return (
