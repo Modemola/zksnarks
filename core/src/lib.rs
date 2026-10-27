@@ -1273,4 +1273,57 @@ mod mainnet {
         };
         assert_eq!(verify(&r).unwrap().height, 3_531_891);
     }
+    const SAPLING: &str = include_str!("../tests/data/mainnet-sapling.zr");
+
+    /// A real Sapling payment: 0.0005 ZEC to a Sapling-only address, mainnet.
+    #[test]
+    fn sapling_receipt_verifies() {
+        let r = Receipt::decode(SAPLING).unwrap();
+        let p = verify(&r).unwrap();
+        assert_eq!(p.pool, Pool::Sapling);
+        assert_eq!(p.height, 3_532_565);
+        assert_eq!(
+            p.txid,
+            "a3eae06535c5350927f81f02235b96743a1a06cb159f075964df8643be4c0e35"
+        );
+        assert_eq!(p.value, 50_000);
+        assert_eq!((p.action_index, p.action_count), (0, 2));
+        assert_eq!(
+            p.memo,
+            Memo::Text("Invoice #1043 - Unseal Sapling demo".into())
+        );
+        let zs1 = "zs1vp67zys00c34zu9d7420jpxutuxfcxv5adhkt0xed92sqygt60wdjrvzw95nyhs9zzf7x0sv35k";
+        assert!(address_contains(zs1, r.network, r.pool, &r.recipient));
+        assert!(address_contains(
+            &p.recipient,
+            r.network,
+            r.pool,
+            &r.recipient
+        ));
+    }
+
+    #[test]
+    fn altered_sapling_receipts_are_rejected() {
+        let r = Receipt::decode(SAPLING).unwrap();
+        for bad in [
+            Receipt {
+                value: 100_000_000,
+                ..r.clone()
+            },
+            Receipt {
+                action_index: 1,
+                ..r.clone()
+            },
+            Receipt {
+                pool: Pool::Orchard,
+                ..r.clone()
+            },
+            Receipt {
+                pool: Pool::Ironwood,
+                ..r.clone()
+            },
+        ] {
+            assert!(verify(&bad).is_err());
+        }
+    }
 }

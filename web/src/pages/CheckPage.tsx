@@ -4,7 +4,7 @@ import { ReceiptCheck } from "../components/ReceiptCheck";
 import { PageHead, Panel, useTitle } from "../components/ui";
 import { brand } from "../brand";
 import { addressMatches, warmEngine, type Checked } from "../lib/receipts";
-import { FORGED, SAMPLE } from "../lib/sample";
+import { FORGED, SAMPLE, SAPLING } from "../lib/sample";
 
 /** The receipt in the link, if any. A link mangled in transit (a stray %) must not crash the page. */
 const fromHash = () => {
@@ -81,6 +81,9 @@ export function CheckPage() {
       </button>
       <button type="button" className="btn small secondary" onClick={() => tryOne(FORGED.receipt, "A forged copy: amount raised to 1 ZEC")}>
         Try a forged copy
+      </button>
+      <button type="button" className="btn small secondary" onClick={() => tryOne(SAPLING.receipt, "A Sapling payment")}>
+        Try a Sapling receipt
       </button>
     </div>
   );

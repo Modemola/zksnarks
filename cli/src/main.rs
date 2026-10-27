@@ -384,9 +384,7 @@ fn create(
         return Ok(());
     }
     if found.is_empty() {
-        println!(
-            "This key didn't send or receive any Orchard or Ironwood payment in that transaction."
-        );
+        println!("This key didn't send or receive any shielded payment in that transaction.");
         return Ok(());
     }
     for (i, f) in found.iter().enumerate() {
