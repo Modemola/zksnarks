@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { brand } from "../brand";
 import { scrollToTop, useSmoothScroll } from "../lib/smooth";
-import { Cursor } from "./Cursor";
 import { Aurora, useAmbientMotion } from "./motion";
 
 export function Layout() {
@@ -100,7 +99,6 @@ export function Layout() {
         Skip to content
       </a>
       <Aurora />
-      <Cursor />
       <div className="scroll-progress" aria-hidden="true" />
       <header className="site">
         <div className="wrap">
