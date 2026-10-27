@@ -20,4 +20,7 @@ export const launch = () =>
     args: process.env.HTTPS_PROXY ? [`--proxy-server=${process.env.HTTPS_PROXY}`, "--proxy-bypass-list=localhost;127.0.0.1"] : [],
   });
 
+/** The browser for tools that launch Chrome themselves (Lighthouse): CHROME, or Playwright's own. */
+export const chromePath = () => process.env.CHROME || pw.chromium.executablePath();
+
 export const slug = (p) => (p === "/" ? "home" : p.slice(1).replace(/[/?]/g, "_"));

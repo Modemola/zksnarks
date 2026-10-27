@@ -4,12 +4,12 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
 import desktop from "lighthouse/core/config/desktop-config.js";
-import { config, slug } from "../browser.mjs";
+import { chromePath, config, slug } from "../browser.mjs";
 
 const [BASE, OUT] = process.argv.slice(2);
 mkdirSync(OUT, { recursive: true });
 const chrome = await chromeLauncher.launch({
-  chromePath: process.env.CHROME || undefined,
+  chromePath: chromePath(),
   chromeFlags: ["--headless=new", "--no-sandbox", "--proxy-bypass-list=localhost;127.0.0.1", ...(process.env.HTTPS_PROXY ? [`--proxy-server=${process.env.HTTPS_PROXY}`] : [])],
 });
 const lines = [];

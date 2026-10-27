@@ -11,8 +11,8 @@ What was checked, how, and the result. Every check can be rerun from this reposi
 | Lints and formatting | `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --check` | Clean |
 | Types | `npm run typecheck` in `web/` | Clean, site and relay |
 | Every flow in a real browser, against mainnet | `node tools/e2e/receipts.mjs` | 51 of 51 pass on the production site |
-| Accessibility, keyboard, layout, outages, copy, pre-rendering | `tools/audit/run.sh` | AUDIT_SUMMARY |
-| Lighthouse, phone and desktop | `tools/audit/run.sh` | LIGHTHOUSE_SUMMARY |
+| Accessibility, keyboard, layout, outages, copy, pre-rendering | `tools/audit/run.sh` | 0 axe violations in light and dark; every control reachable by keyboard; 80 of 80 page and screen size combinations clean; layout shift at most 0.001; every pre-rendered page reused without hydration errors |
+| Lighthouse, phone and desktop | `tools/audit/run.sh` | Performance 92 to 96 on phone and 100 on desktop, from a local server without compression; 100 for accessibility, best practices and SEO on every page |
 | Continuous integration | `.github/workflows/ci.yml` on every push | Engine (format, lints, tests, browser target) and site build |
 
 ## The receipt engine
@@ -85,8 +85,8 @@ Across every flow, every request was recorded with its body:
 
 ## Interface
 
-- Accessibility: AXE_LINE
-- Screen sizes: RESPONSIVE_LINE
+- Accessibility: 0 axe violations in light and dark mode on every page; every control reachable by keyboard, with a visible focus ring.
+- Screen sizes: 80 of 80 page and screen size combinations clean, across 16 sizes from a 280 px folded phone to a 2560 px desktop.
 - Touch screens: every control at least 44 × 44 px on phone, landscape phone and tablet.
 - Text at 200%: no clipping and no sideways scrolling on any page.
 - Extreme content: a 512 character memo with no spaces, a 21 million ZEC amount, and mixed emoji, Hebrew and Chinese text
