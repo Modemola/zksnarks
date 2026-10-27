@@ -1,0 +1,18 @@
+{
+  "name": "unseal-tools",
+  "private": true,
+  "type": "module",
+  "description": "Browser checks against the live chain, the interface audit (accessibility, keyboard, 16 screen sizes, outages, Lighthouse) and the brand renderer.",
+  "scripts": {
+    "e2e": "node e2e/receipts.mjs",
+    "audit": "sh audit/run.sh",
+    "brand": "node brand/render.mjs",
+    "screens": "node brand/screens.mjs"
+  },
+  "dependencies": {
+    "axe-core": "4.13.0",
+    "chrome-launcher": "1.2.1",
+    "lighthouse": "13.4.1",
+    "playwright": "1.56.1"
+  }
+}

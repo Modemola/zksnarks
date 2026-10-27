@@ -15,7 +15,7 @@ export function HowPage() {
       </PageHead>
       <div className="points">
         {[
-          ["1", "One payment, opened", "The receipt unlocks a single payment: its amount, the address it paid and its note. Every other payment stays encrypted."],
+          ["1", "One payment, opened", "The receipt opens a single payment: its amount, the address it paid and its note. Every other payment stays encrypted."],
           ["2", "No keys handed over", "Making a receipt reads your viewing key in your browser. The receipt itself contains no key, so it can't show your history or your balance."],
           ["3", "Checked by anyone", "The check runs in the reader's browser against public chain data. They don't have to trust you, or us, about what the receipt says."],
         ].map(([n, t, p]) => (

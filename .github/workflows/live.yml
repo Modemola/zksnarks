@@ -1,0 +1,31 @@
+name: Live checks
+
+# Drives every flow of a deployed site in a real browser against Zcash mainnet.
+# Run it by hand from the Actions tab after a deploy.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Site to check
+        default: https://unseall.vercel.app
+        required: true
+
+jobs:
+  browser:
+    name: Browser checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        working-directory: tools
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Check the site
+        run: node tools/e2e/receipts.mjs "${{ inputs.url }}"

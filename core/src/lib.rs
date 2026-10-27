@@ -1223,7 +1223,7 @@ mod mainnet {
     use super::*;
 
     const DEMO: &str = include_str!("../tests/data/mainnet-demo.zr");
-    const FORGED: &str = include_str!("../../docs/forged-receipt.txt");
+    const FORGED: &str = include_str!("../tests/data/mainnet-forged.zr");
 
     /// The real payment on the site's home page: 0.001 ZEC, Ironwood, mainnet.
     #[test]

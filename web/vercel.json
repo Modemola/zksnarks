@@ -52,5 +52,8 @@
       ]
     }
   ],
-  "framework": null
+  "framework": null,
+  "github": {
+    "silent": true
+  }
 }

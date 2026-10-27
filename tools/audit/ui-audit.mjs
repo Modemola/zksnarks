@@ -5,7 +5,7 @@
 // Usage: node ui-audit.mjs <base-url> <out-dir>      (pages in audit.config.json)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { config, launch, slug } from "./browser.mjs";
+import { config, launch, slug } from "../browser.mjs";
 
 const [BASE, OUT] = process.argv.slice(2);
 mkdirSync(OUT, { recursive: true });
@@ -138,7 +138,7 @@ for (const path of PAGES) {
     imgsNoAlt: [...document.querySelectorAll("img")].filter((i) => !i.hasAttribute("alt")).length,
   }));
   report.copy[path] = {
-    emDashes: (m.text.match(/—/g) ?? []).length,
+    emDashes: (m.text.match(/\u2014/g) ?? []).length,
     hype: [...new Set((m.text.match(HYPE) ?? []).map((w) => w.toLowerCase()))],
     jargon: [...new Set((m.text.match(JARGON) ?? []).map((w) => w.toLowerCase()))],
     placeholders: (m.text.match(/\b(TODO|CHANGE|lorem ipsum)\b/gi) ?? []).length,

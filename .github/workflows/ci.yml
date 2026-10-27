@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  engine:
+    name: Receipt engine and CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned, so a new compiler's lints can't turn a green commit red.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.97.0"
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Lints
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # Includes the real mainnet receipts (Ironwood and Sapling) and the forged copy.
+      - name: Test
+        run: cargo test --workspace
+
+      # The site ships a committed build of the engine; this proves the source
+      # still compiles for the browser.
+      - name: Browser target
+        run: cargo build --release --target wasm32-unknown-unknown -p zreceipt
+
+  site:
+    name: Site and relay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        working-directory: web
+        run: npm ci
+
+      # Type checks the site and the relay, builds, and pre-renders every page.
+      - name: Build
+        working-directory: web
+        run: npm run build

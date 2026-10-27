@@ -159,7 +159,7 @@ export function CreatePage() {
                 <button type="button" className="btn small secondary" onClick={tryDemo} disabled={busy}>
                   Try it with the demo wallet
                 </button>
-                <span className="small muted">Our demo shop's view-only key; its one payment is the demo.</span>
+                <span className="small muted">Our demo shop's view-only key. It has received two demo payments; this finds the first.</span>
               </div>
             </form>
             {err && (

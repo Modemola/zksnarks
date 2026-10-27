@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
 import desktop from "lighthouse/core/config/desktop-config.js";
-import { config, slug } from "./browser.mjs";
+import { config, slug } from "../browser.mjs";
 
 const [BASE, OUT] = process.argv.slice(2);
 mkdirSync(OUT, { recursive: true });

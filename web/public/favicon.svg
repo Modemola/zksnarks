@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#1b1f27"/><path d="M18 30v-6a14 14 0 0 1 28 0" fill="none" stroke="#f4b728" stroke-width="5" stroke-linecap="round"/><rect x="14" y="30" width="36" height="24" rx="6" fill="#f4b728"/><path d="M27 42l4 4 8-9" fill="none" stroke="#1b1f27" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 108 108">
+  <defs>
+    <radialGradient id="wax" cx="38%" cy="32%" r="75%">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="0.45" stop-color="#f4b728"/>
+      <stop offset="1" stop-color="#b77c06"/>
+    </radialGradient>
+  </defs>
+  <path d="M50 3c6 0 8 4 13 5s10-1 13 3 1 9 4 13 8 6 8 11-4 8-4 13 4 9 2 13-7 5-9 9-1 10-5 12-9-1-13 1-6 7-12 7-8-5-13-6-10 2-13-2-1-9-4-13-8-5-9-10 3-8 3-13-5-9-2-13 7-5 9-9 1-10 5-12 9 1 13-1 6-7 12-7z" fill="url(#wax)" stroke="#7a4f00" stroke-opacity="0.75" stroke-width="2"/>
+  <circle cx="50" cy="50" r="27" fill="none" stroke="#7a4f00" stroke-opacity="0.4" stroke-width="2.5"/>
+  <circle cx="50" cy="43" r="8" fill="#5c3d00"/>
+  <path d="M45.5 48l-3 15h15l-3-15z" fill="#5c3d00"/>
+</svg>

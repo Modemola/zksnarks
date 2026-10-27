@@ -11,7 +11,7 @@ try {
   pw = require(`${execSync("npm root -g").toString().trim()}/playwright`);
 }
 
-export const config = JSON.parse(readFileSync(new URL("./audit.config.json", import.meta.url), "utf8"));
+export const config = JSON.parse(readFileSync(new URL("./audit/audit.config.json", import.meta.url), "utf8"));
 
 /** CHROME=/path/to/chrome to use a specific browser; otherwise Playwright's own. */
 export const launch = () =>

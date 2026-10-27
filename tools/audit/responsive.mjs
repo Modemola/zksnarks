@@ -6,7 +6,7 @@
 //
 // Usage: node responsive.mjs <base-url> <out-dir> [device,device]
 import { mkdirSync, writeFileSync } from "node:fs";
-import { config, launch, slug } from "./browser.mjs";
+import { config, launch, slug } from "../browser.mjs";
 
 const [BASE, OUT, ONLY] = process.argv.slice(2);
 mkdirSync(OUT, { recursive: true });
