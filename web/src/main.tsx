@@ -4,15 +4,13 @@ import { createBrowserRouter, matchRoutes, RouterProvider } from "react-router-d
 import { routes } from "./routes";
 // Fonts ship with the site (no render-blocking request to another server),
 // only the weights and Latin subsets the design uses.
-import "@fontsource/fraunces/latin-300.css";
-import "@fontsource/fraunces/latin-300-italic.css";
-import "@fontsource/fraunces/latin-400.css";
-import "@fontsource/fraunces/latin-400-italic.css";
-import "@fontsource/geist/latin-400.css";
-import "@fontsource/geist/latin-500.css";
-import "@fontsource/geist/latin-600.css";
-import "@fontsource/geist-mono/latin-400.css";
-import "@fontsource/geist-mono/latin-500.css";
+import "@fontsource/instrument-serif/latin-400.css";
+import "@fontsource/instrument-serif/latin-400-italic.css";
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-500.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
 import "./styles.css";
 
 // A data router, so links can use the View Transitions API.

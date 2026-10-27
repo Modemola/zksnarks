@@ -45,6 +45,6 @@ function preloadFonts(patterns: RegExp[]): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), devApi(), preloadFonts([/fraunces-latin-300-normal/, /geist-latin-400-normal/])],
+  plugins: [react(), devApi(), preloadFonts([/instrument-serif-latin-400-normal/, /ibm-plex-sans-latin-400-normal/])],
   build: { sourcemap: true },
 });

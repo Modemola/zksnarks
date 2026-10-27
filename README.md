@@ -129,10 +129,6 @@ Deploy: import the repository in Vercel (Root Directory `web`, or the repository
 | `audit/` | Interface audits (accessibility, 16 screen sizes, outages, speed) |
 | `docs/` | Demo script, submission text, design brief |
 
-## Prior work
-
-None. Everything here was written during the Zecathon build window; the git history has the dates.
-
 ## License
 
 MIT or Apache-2.0, at your option.
