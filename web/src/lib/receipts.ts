@@ -206,7 +206,7 @@ export async function keyNetwork(ufvk: string): Promise<Network> {
 export async function findPayments(ufvk: string, txid: string): Promise<{ height: number; payments: Payment[] }> {
   const w = await engine();
   const network = await keyNetwork(ufvk);
-  const tx = await postJson<{ found: boolean; height: number; hex: string }>("/api/tx", { network, txid: txid.trim().toLowerCase() }, { timeoutMs: 20000 });
+  const tx = await postJson<{ found: boolean; height: number; hex: string }>("/api/tx", { network, txid: txid.replace(/\s+/g, "").toLowerCase() }, { timeoutMs: 20000 });
   if (!tx.found) throw new Error("not found");
   if (!tx.height || tx.height > 1e9) throw new Plain("That transaction has not been mined yet. Wait for one confirmation, then try again.");
   const raw = new Uint8Array(tx.hex.match(/../g)!.map((h) => parseInt(h, 16)));

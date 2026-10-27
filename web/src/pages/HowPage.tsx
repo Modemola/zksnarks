@@ -161,6 +161,11 @@ unseal inspect zr1…                          # read without checking`}</code>
                 the request body, not the address, and nothing is stored.
               </li>
               <li>
+                <strong>Mixed payments:</strong> a receipt points to its whole transaction. If that transaction also spent transparent
+                (public) funds, those inputs are public on chain anyway. Fully shielded payments, like the demo, show nothing about the
+                sender.
+              </li>
+              <li>
                 <strong>Not proved:</strong> who sent the payment. A receipt is like a paper receipt: whoever holds it can show it.
               </li>
             </ul>
@@ -168,7 +173,7 @@ unseal inspect zr1…                          # read without checking`}</code>
           <Panel className="quiet" eyebrow="Supported today">
             <ul className="small" style={{ margin: 0, paddingLeft: "1.1rem", color: "var(--ink-secondary)" }}>
               <li>Orchard payments, mainnet and testnet</li>
-              <li>Ironwood payments, mainnet and testnet: where wallets now put new shielded funds</li>
+              <li>Ironwood payments, mainnet and testnet (the demo payment is one)</li>
               <li>Not yet: Sapling and transparent payments</li>
             </ul>
           </Panel>

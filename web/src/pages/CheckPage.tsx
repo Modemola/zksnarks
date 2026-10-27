@@ -6,7 +6,16 @@ import { brand } from "../brand";
 import { addressMatches, warmEngine, type Checked } from "../lib/receipts";
 import { FORGED, SAMPLE } from "../lib/sample";
 
-const fromHash = () => (typeof location === "undefined" ? "" : decodeURIComponent(location.hash.slice(1)));
+/** The receipt in the link, if any. A link mangled in transit (a stray %) must not crash the page. */
+const fromHash = () => {
+  if (typeof location === "undefined") return "";
+  const raw = location.hash.slice(1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
 
 /** Check a receipt from a link (after #) or pasted in. */
 export function CheckPage() {
@@ -141,6 +150,8 @@ function ReceiptInput({ text, setText, looksRight, onSubmit }: { text: string; s
           placeholder="zr1… or https://…/check#zr1…"
           aria-labelledby={`${id}-label`}
           spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
           autoComplete="off"
           aria-invalid={showHint}
           aria-describedby={`${id}-help`}
@@ -162,7 +173,7 @@ function MatchAddress({ receipt, result }: { receipt: string; result: Checked | 
   const [match, setMatch] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
-    const a = address.trim();
+    const a = address.replace(/\s+/g, "");
     if (!receipt || !result || a.length < 20) {
       setMatch(null);
       return;
@@ -183,6 +194,8 @@ function MatchAddress({ receipt, result }: { receipt: string; result: Checked | 
           placeholder="u1…"
           aria-labelledby="match-label"
           spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
           autoComplete="off"
           aria-describedby="match-help"
         />
