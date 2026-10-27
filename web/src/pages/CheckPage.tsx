@@ -49,10 +49,19 @@ export function CheckPage() {
   const trimmed = text.trim();
   const looksRight = trimmed.startsWith("zr1") || trimmed.includes("#zr1");
   const [source, setSource] = useState("The receipt you pasted");
+  /**
+   * Keep the receipt being checked in the address bar (after #, which never
+   * reaches a server), so a refresh keeps it and the address is a shareable link.
+   */
+  const remember = (receipt: string) => {
+    const r = receipt.includes("#") ? receipt.slice(receipt.lastIndexOf("#") + 1) : receipt;
+    history.replaceState(history.state, "", `${location.pathname}#${r.replace(/\s+/g, "")}`);
+  };
   const submit = () => {
     setResult(null);
     setFromLink(false);
     setSource("The receipt you pasted");
+    remember(trimmed);
     setActive(trimmed);
   };
   /** One click to see it work, for anyone without a receipt to hand. */
@@ -61,6 +70,7 @@ export function CheckPage() {
     setFromLink(false);
     setSource(label);
     setText(receipt);
+    remember(receipt);
     setActive(receipt);
   };
   const tryButtons = (

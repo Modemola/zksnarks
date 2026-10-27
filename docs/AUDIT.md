@@ -54,7 +54,49 @@ What was checked, how, and the result. Every check can be rerun from this reposi
 
 Current Chrome, Edge, Firefox and Safari. Fallbacks for `AbortSignal.timeout` and `requestIdleCallback` (older Safari); border and rule colours are plain rgba, so they render correctly without `color-mix()`.
 
+## Deployment, verified from a fresh clone
+
+- Cloned from GitHub into an empty folder and ran exactly what the host runs: `npm --prefix web ci`, `npm --prefix web run build` (all pages pre-rendered; every static file present).
+- The relay functions compiled to JavaScript and served by bare Node (no dev tooling), in both layouts (Root Directory `web` or the repository root): all three endpoints answer correctly against mainnet. This caught and fixed a real bug: extensionless imports that plain Node refuses to load.
+- `cargo test -p zreceipt` (10 pass) and the CLI build and verify the demo receipt from the fresh clone.
+- The committed WebAssembly engine matches the source: two rebuilds produce byte-identical files.
+
+## Privacy, verified by recording every request
+
+Across every flow (home check, link check, address match, making a receipt with a pasted key and with the demo wallet), 156 requests were recorded with their bodies:
+
+- Hosts contacted: the site only (no fonts, analytics or other third parties)
+- Viewing keys: in no request, in full or in part
+- The receipt itself: in no request
+- The address typed into "Was it paid to you?": in no request
+- The whole relay traffic: `GET /api/tip`, `GET /api/blocks` for a 16-block range, `POST /api/tx` with a network and a transaction ID
+
+## The cryptographic guarantee, checked in the library source
+
+`try_output_recovery_with_pkd_esk` (zcash_note_encryption 0.5.1) returns a note only if the ciphertext authenticates (ChaCha20-Poly1305), the ephemeral secret derived from the note equals the one used (ZIP 212), the note's commitment equals the on-chain `cmx`, and the derived ephemeral public key equals the on-chain one. Unseal then also requires the note to equal the receipt's claim in full.
+
+## Low-end phones
+
+With the CPU slowed 6× (a budget Android): engine start 0.14 s, a full check including the chain lookup 0.9 s, finding payments 1.1 s.
+
+## Mobile typing and links
+
+- Key, transaction ID, address and receipt fields: no auto-capitalisation, autocorrect or spellcheck; 16 px on touch screens so iOS doesn't zoom on focus.
+- Line breaks and spaces inside pasted keys and transaction IDs are ignored (site and CLI).
+- A receipt link mangled in transit (a stray `%`) shows "damaged", not a crash. A checked receipt stays in the address bar after `#`, so a refresh keeps it.
+
+## Print
+
+A verified receipt prints as a two-page record: the verdict, the facts, the steps, what stayed private, the redactions (printed in colour), and a stamp of when, where and against which chain tip it was checked.
+
+## Dependencies
+
+- `npm audit --omit=dev`: two moderate React Router advisories remain; their fix is the next major version. Assessed as not applicable: Unseal never builds links or navigation from user input (the only dynamic link is a receipt our engine produced, base64url, no backslashes), and pre-rendering passes `hydrate={false}`, so no router hydration data is shipped.
+- Development only: an esbuild advisory about the local dev server; it never reaches the deployed site.
+- React Router upgraded 6.28.0 → 6.30.6 and Vite 5.4.11 → 5.4.21 for the advisories that had non-breaking fixes.
+
 ## Known limits
 
 - Automated browser checks ran in Chromium; Safari and Firefox were reviewed by feature support, not driven by a test runner.
+- The relay is open (any site visitor can request blocks and transactions through it), like a public lightwalletd; it relies on the host's own abuse protection rather than its own rate limits.
 - Lighthouse ran against a local server without compression.
