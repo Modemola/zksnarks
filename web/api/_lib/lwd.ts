@@ -104,43 +104,54 @@ function connectSocket(host: string): Promise<tls.TLSSocket> {
  * One HTTP/2 session per server, kept open and reused while the process stays
  * warm, so a check costs one TLS handshake at most instead of one per call.
  */
-const sessions = new Map<string, Promise<http2.ClientHttp2Session>>();
+const sessions = new Map<string, { session: Promise<http2.ClientHttp2Session>; lastUsed: number }>();
 
-function session(host: string): Promise<http2.ClientHttp2Session> {
-  let s = sessions.get(host);
-  if (!s) {
-    s = connectSocket(host).then((socket) => {
-      const sess = http2.connect(`https://${host}`, { createConnection: () => socket });
-      const drop = () => sessions.delete(host);
-      sess.on("close", drop);
-      sess.on("error", drop);
-      sess.on("goaway", drop);
-      // Never keep the process alive just for this connection.
-      sess.unref();
-      sess.setTimeout(60_000, () => sess.close());
-      return sess;
-    });
-    s.catch(() => sessions.delete(host));
-    sessions.set(host, s);
+/** A connection idle longer than this may have been dropped by the network without notice: reopen it. */
+const MAX_IDLE_MS = 20_000;
+/** A request on a reused connection gets this long before we assume the connection is dead. */
+const REUSED_TIMEOUT_MS = 3_000;
+
+function session(host: string, fresh: boolean): { session: Promise<http2.ClientHttp2Session>; reused: boolean } {
+  const cached = sessions.get(host);
+  if (cached && !fresh && Date.now() - cached.lastUsed < MAX_IDLE_MS) {
+    cached.lastUsed = Date.now();
+    return { session: cached.session, reused: true };
   }
-  return s;
+  if (cached) void cached.session.then((s) => s.destroy()).catch(() => undefined);
+  const sess = connectSocket(host).then((socket) => {
+    const c = http2.connect(`https://${host}`, { createConnection: () => socket });
+    const drop = () => sessions.get(host)?.session === sess && sessions.delete(host);
+    c.on("close", drop);
+    c.on("error", drop);
+    c.on("goaway", drop);
+    // Never keep the process alive just for this connection.
+    c.unref();
+    return c;
+  });
+  sess.catch(() => sessions.delete(host));
+  sessions.set(host, { session: sess, lastUsed: Date.now() });
+  return { session: sess, reused: false };
 }
 
-/** One unary or server-streaming gRPC call; returns every response message. Retries once on a stale connection. */
+/**
+ * One unary or server-streaming gRPC call; returns every response message.
+ * A request on a reused connection that fails for any network reason
+ * (including a silent stall) is retried once on a fresh connection.
+ */
 async function call(network: Network, method: string, body: Buffer, timeoutMs = 15000): Promise<Buffer[]> {
   const host = SERVERS[network];
+  const first = session(host, false);
   try {
-    return await callOnce(host, method, body, timeoutMs);
+    return await callOnce(await first.session, method, body, first.reused ? Math.min(timeoutMs, REUSED_TIMEOUT_MS) : timeoutMs);
   } catch (e) {
-    // A reused connection may have been closed by the server between requests.
-    if (e instanceof Error && /lightwalletd:|timed out/.test(e.message)) throw e;
-    sessions.delete(host);
-    return callOnce(host, method, body, timeoutMs);
+    // The server answered with an error: retrying on a new connection won't change it.
+    if (e instanceof Error && e.message.startsWith("lightwalletd:")) throw e;
+    if (!first.reused) throw e;
+    return callOnce(await session(host, true).session, method, body, timeoutMs);
   }
 }
 
-async function callOnce(host: string, method: string, body: Buffer, timeoutMs: number): Promise<Buffer[]> {
-  const sess = await session(host);
+async function callOnce(sess: http2.ClientHttp2Session, method: string, body: Buffer, timeoutMs: number): Promise<Buffer[]> {
   if (sess.closed || sess.destroyed) throw new Error("stale session");
   return new Promise<Buffer[]>((resolve, reject) => {
     const frame = Buffer.concat([Buffer.from([0]), Buffer.alloc(4), body]);

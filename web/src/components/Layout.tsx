@@ -115,8 +115,11 @@ export function Layout() {
                 style={{ transform: `translateX(${pill?.x ?? 0}px)`, width: pill?.w ?? 0, opacity: pill ? 1 : 0 }}
               />
               {brand.nav.map((n) => (
-                <NavLink key={n.to} viewTransition to={n.to} end={n.end}>
-                  {n.label}
+                <NavLink key={n.to} viewTransition to={n.to} end={n.end} aria-label={n.label}>
+                  <span className="full">{n.label}</span>
+                  <span className="short" aria-hidden="true">
+                    {n.short}
+                  </span>
                 </NavLink>
               ))}
             </nav>
@@ -132,7 +135,7 @@ export function Layout() {
                 </details>
               </div>
             )}
-            <NavLink viewTransition className="btn small" to="/create">
+            <NavLink viewTransition className="btn small header-cta" to="/create">
               Make a receipt
             </NavLink>
           </div>

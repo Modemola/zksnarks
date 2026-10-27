@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/prerender.mjs",
+    "build": "tsc -b && tsc -p tsconfig.api.json && vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit && tsc -p tsconfig.api.json"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
