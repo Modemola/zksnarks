@@ -100,58 +100,91 @@ function connectSocket(host: string): Promise<tls.TLSSocket> {
   });
 }
 
-/** One unary or server-streaming gRPC call; returns every response message. */
+/**
+ * One HTTP/2 session per server, kept open and reused while the process stays
+ * warm, so a check costs one TLS handshake at most instead of one per call.
+ */
+const sessions = new Map<string, Promise<http2.ClientHttp2Session>>();
+
+function session(host: string): Promise<http2.ClientHttp2Session> {
+  let s = sessions.get(host);
+  if (!s) {
+    s = connectSocket(host).then((socket) => {
+      const sess = http2.connect(`https://${host}`, { createConnection: () => socket });
+      const drop = () => sessions.delete(host);
+      sess.on("close", drop);
+      sess.on("error", drop);
+      sess.on("goaway", drop);
+      // Never keep the process alive just for this connection.
+      sess.unref();
+      sess.setTimeout(60_000, () => sess.close());
+      return sess;
+    });
+    s.catch(() => sessions.delete(host));
+    sessions.set(host, s);
+  }
+  return s;
+}
+
+/** One unary or server-streaming gRPC call; returns every response message. Retries once on a stale connection. */
 async function call(network: Network, method: string, body: Buffer, timeoutMs = 15000): Promise<Buffer[]> {
   const host = SERVERS[network];
-  const socket = await connectSocket(host);
-  const session = http2.connect(`https://${host}`, { createConnection: () => socket });
   try {
-    return await new Promise<Buffer[]>((resolve, reject) => {
-      const frame = Buffer.concat([Buffer.from([0]), Buffer.alloc(4), body]);
-      frame.writeUInt32BE(body.length, 1);
-      const req = session.request({
-        ":method": "POST",
-        ":path": SERVICE + method,
-        "content-type": "application/grpc",
-        te: "trailers",
-      });
-      const timer = setTimeout(() => {
-        req.close();
-        reject(new Error("timed out"));
-      }, timeoutMs);
-      const chunks: Buffer[] = [];
-      let status: string | undefined;
-      let message = "";
-      const takeStatus = (h: http2.IncomingHttpHeaders) => {
-        if (h["grpc-status"] !== undefined) {
-          status = String(h["grpc-status"]);
-          message = decodeURIComponent(String(h["grpc-message"] ?? ""));
-        }
-      };
-      req.on("response", takeStatus);
-      req.on("trailers", takeStatus);
-      req.on("data", (c: Buffer) => chunks.push(c));
-      req.on("error", (e) => {
-        clearTimeout(timer);
-        reject(e);
-      });
-      req.on("end", () => {
-        clearTimeout(timer);
-        if (status && status !== "0") return reject(new Error(`lightwalletd: ${message || `status ${status}`}`));
-        const raw = Buffer.concat(chunks);
-        const msgs: Buffer[] = [];
-        for (let i = 0; i + 5 <= raw.length; ) {
-          const n = raw.readUInt32BE(i + 1);
-          msgs.push(raw.subarray(i + 5, i + 5 + n));
-          i += 5 + n;
-        }
-        resolve(msgs);
-      });
-      req.end(frame);
-    });
-  } finally {
-    session.close();
+    return await callOnce(host, method, body, timeoutMs);
+  } catch (e) {
+    // A reused connection may have been closed by the server between requests.
+    if (e instanceof Error && /lightwalletd:|timed out/.test(e.message)) throw e;
+    sessions.delete(host);
+    return callOnce(host, method, body, timeoutMs);
   }
+}
+
+async function callOnce(host: string, method: string, body: Buffer, timeoutMs: number): Promise<Buffer[]> {
+  const sess = await session(host);
+  if (sess.closed || sess.destroyed) throw new Error("stale session");
+  return new Promise<Buffer[]>((resolve, reject) => {
+    const frame = Buffer.concat([Buffer.from([0]), Buffer.alloc(4), body]);
+    frame.writeUInt32BE(body.length, 1);
+    const req = sess.request({
+      ":method": "POST",
+      ":path": SERVICE + method,
+      "content-type": "application/grpc",
+      te: "trailers",
+    });
+    const timer = setTimeout(() => {
+      req.close();
+      reject(new Error("timed out"));
+    }, timeoutMs);
+    const chunks: Buffer[] = [];
+    let status: string | undefined;
+    let message = "";
+    const takeStatus = (h: http2.IncomingHttpHeaders) => {
+      if (h["grpc-status"] !== undefined) {
+        status = String(h["grpc-status"]);
+        message = decodeURIComponent(String(h["grpc-message"] ?? ""));
+      }
+    };
+    req.on("response", takeStatus);
+    req.on("trailers", takeStatus);
+    req.on("data", (c: Buffer) => chunks.push(c));
+    req.on("error", (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+    req.on("end", () => {
+      clearTimeout(timer);
+      if (status && status !== "0") return reject(new Error(`lightwalletd: ${message || `status ${status}`}`));
+      const raw = Buffer.concat(chunks);
+      const msgs: Buffer[] = [];
+      for (let i = 0; i + 5 <= raw.length; ) {
+        const n = raw.readUInt32BE(i + 1);
+        msgs.push(raw.subarray(i + 5, i + 5 + n));
+        i += 5 + n;
+      }
+      resolve(msgs);
+    });
+    req.end(frame);
+  });
 }
 
 // ---- the three calls -------------------------------------------------------------

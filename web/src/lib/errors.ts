@@ -4,7 +4,8 @@ const RULES: [RegExp, string][] = [
   [/user (rejected|cancel|closed)|cancelled|canceled|aborted by user/i, "Cancelled. Nothing was sent."],
   [/failed to fetch|networkerror|load failed|network request failed/i, "Can't reach the server right now. Check your connection and try again; nothing was sent."],
   [/HTTP 429|too many requests/i, "The server is busy. Wait a few seconds and try again."],
-  [/HTTP 5\d\d|timeout|timed out/i, "The server took too long to answer. Try again in a moment."],
+  [/timeout|timed out/i, "The Zcash network took too long to answer. Try again in a moment."],
+  [/HTTP 5\d\d/i, "The Zcash network didn't answer just now. Try again in a moment."],
   [/HTTP 404|not found/i, "The Zcash network has no transaction with that ID. Check it was copied in full, and that it is on the same network as the key."],
 ];
 

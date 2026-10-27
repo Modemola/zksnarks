@@ -220,10 +220,8 @@ fn check(cli: &Cli, arg: &str, address: Option<&str>, offline: bool) -> Result<(
     } else {
         let net = network_name(receipt.network);
         let start = receipt.height - receipt.height % WINDOW;
-        let tip = relay_get(&cli.relay, &format!("/api/tip?network={net}"))?["tip"]
-            .as_u64()
-            .unwrap_or(0) as u32;
-        let end = (start + WINDOW - 1).min(tip.max(receipt.height));
+        // The relay trims the window to the chain tip.
+        let end = start + WINDOW - 1;
         let got = relay_get(
             &cli.relay,
             &format!("/api/blocks?network={net}&start={start}&end={end}"),
@@ -248,8 +246,8 @@ fn check(cli: &Cli, arg: &str, address: Option<&str>, offline: bool) -> Result<(
                 None => format!("block {} is not on the network yet; try again in a few minutes", receipt.height),
             });
         }
-        let tip = got["tip"].as_u64().unwrap_or(tip as u64) as u32;
-        Some((tip - receipt.height + 1, start, end))
+        let tip = got["tip"].as_u64().unwrap_or(receipt.height as u64) as u32;
+        Some((tip.saturating_sub(receipt.height) + 1, start, end.min(tip)))
     };
 
     if cli.json {
@@ -319,6 +317,9 @@ fn create(
                 "/api/tx",
                 serde_json::json!({ "network": network_name(network), "txid": txid }),
             )?;
+            if r["found"] == false {
+                return Err("the Zcash network has no transaction with that ID".into());
+            }
             let h = r["height"].as_u64().unwrap_or(0);
             if h == 0 || h > u32::MAX as u64 {
                 return Err(

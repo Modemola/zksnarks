@@ -48,7 +48,7 @@ export function HowPage() {
           </Reveal>
 
           <Reveal>
-            <Panel eyebrow="Why it can't lie" title="Change one detail and the check fails">
+            <Panel eyebrow="Why it can't lie" title="Alter one detail and the check fails">
               <p className="small" style={{ marginTop: 0, color: "var(--ink-secondary)" }}>
                 Every shielded payment is recorded on chain as a commitment: a fingerprint of its recipient, amount and two random values. One
                 of those values is public; the receipt carries the other. Your browser rebuilds the payment from the receipt, derives the key
@@ -58,7 +58,7 @@ export function HowPage() {
                 <li>A higher amount gives a different fingerprint, so the receipt is rejected.</li>
                 <li>A different address can't decrypt the payment at all.</li>
                 <li>Pointing the receipt at another payment in the same transaction fails the same way.</li>
-                <li>Editing the transaction's payment data changes its ID, which then isn't in the block. (Its proofs and signatures sit outside the ID by Zcash's design; the network checked them when it mined it, and they change nothing the receipt states.)</li>
+                <li>Editing the transaction's payment data changes its ID, which then isn't in the block. (Its proofs and signatures sit outside the ID by Zcash's design; the network checked them when it mined it, and they alter nothing the receipt states.)</li>
               </ul>
               <details className="more">
                 <summary>The cryptography, for the curious</summary>
@@ -77,7 +77,7 @@ export function HowPage() {
 
           <Reveal>
             <Panel eyebrow="Inside a receipt" title="What the zr1… text holds">
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0} role="region" aria-label="What a receipt holds, part by part">
                 <table>
                   <thead>
                     <tr>

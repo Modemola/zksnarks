@@ -18,7 +18,11 @@ export default async function handler(req: Req, res: Res) {
   if (!net || !Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start || end - start >= MAX_RANGE)
     return send(res, 400, { error: `Ask for 1 to ${MAX_RANGE} blocks on mainnet or testnet.` });
   try {
-    const [tip, blocks] = await Promise.all([tipHeight(net), getBlocks(net, start, end)]);
+    // Clamp to the chain tip, so a window around a payment from the last few
+    // minutes returns the blocks that exist instead of failing.
+    const tip = await tipHeight(net);
+    const last = Math.min(end, tip);
+    const blocks = start <= last ? await getBlocks(net, start, last) : [];
     // Blocks well below the tip don't change; let the CDN keep them.
     const settled = end < tip - 100;
     send(res, 200, { tip, blocks }, settled ? "public, max-age=3600, s-maxage=86400" : "public, max-age=15");

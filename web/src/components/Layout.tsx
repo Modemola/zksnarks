@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { brand } from "../brand";
 import { scrollToTop, useSmoothScroll } from "../lib/smooth";
+import { getJson } from "../lib/api";
 import { Aurora, useAmbientMotion } from "./motion";
 
 export function Layout() {
@@ -119,6 +120,7 @@ export function Layout() {
                 </NavLink>
               ))}
             </nav>
+            <NetworkBadge />
             {brand.notice && (
               // In the fixed-height header: always visible, never shifts the page.
               <div className="chips">
@@ -155,5 +157,28 @@ export function Layout() {
         </div>
       </footer>
     </>
+  );
+}
+
+/**
+ * Which chain the site is on, live: the current mainnet block height, fetched
+ * once per visit (and cached for 15 seconds by the relay). Says "mainnet"
+ * straight away, so the header never waits on the network.
+ */
+function NetworkBadge() {
+  const [tip, setTip] = useState<number | null>(null);
+  useEffect(() => {
+    let live = true;
+    getJson<{ tip: number }>("/api/tip?network=mainnet", { timeoutMs: 6000 })
+      .then((r) => live && setTip(r.tip))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  return (
+    <span className="net" title="Unseal checks receipts against the live Zcash mainnet">
+      Zcash mainnet{tip ? <span className="net-tip"> · block {tip.toLocaleString("en-US")}</span> : null}
+    </span>
   );
 }

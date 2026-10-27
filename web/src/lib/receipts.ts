@@ -83,9 +83,10 @@ const parse = <T>(json: string): T => {
 
 /** Blocks are fetched in aligned windows, so the relay learns a range, never the payment. */
 export const WINDOW = 16;
-const windowFor = (height: number, tip: number): [number, number] => {
+/** The aligned window of blocks around a height. The relay trims it to the chain tip. */
+const windowFor = (height: number): [number, number] => {
   const start = height - (height % WINDOW);
-  return [start, Math.min(start + WINDOW - 1, Math.max(tip, height))];
+  return [start, start + WINDOW - 1];
 };
 
 /**
@@ -108,8 +109,7 @@ export async function checkReceipt(text: string, onStep: (steps: Step[]) => void
     const info = parse<{ network: Network; height: number; pool: string; bytes: number }>(w.receiptInfo(text));
     set("read", "done", `${info.network}, block ${info.height.toLocaleString("en-US")}, ${info.pool}`);
     // Start the network request now; it runs while the cryptography does.
-    const tip = await getJson<{ tip: number }>(`/api/tip?network=${info.network}`).then((r) => r.tip).catch(() => info.height);
-    const range = windowFor(info.height, tip);
+    const range = windowFor(info.height);
     const blocks = getJson<{ tip: number; blocks: Block[] }>(
       `/api/blocks?network=${info.network}&start=${range[0]}&end=${range[1]}`,
       { timeoutMs: 20000 },
@@ -144,7 +144,8 @@ export async function checkReceipt(text: string, onStep: (steps: Step[]) => void
     current = "fetch";
     set("fetch", "running");
     const got = await blocks;
-    set("fetch", "done", `Blocks ${range[0].toLocaleString("en-US")} to ${range[1].toLocaleString("en-US")}`);
+    const fetched: [number, number] = [range[0], Math.min(range[1], got.tip)];
+    set("fetch", "done", `Blocks ${fetched[0].toLocaleString("en-US")} to ${fetched[1].toLocaleString("en-US")}`);
     current = "find";
     set("find", "running");
     await pause();
@@ -158,7 +159,7 @@ export async function checkReceipt(text: string, onStep: (steps: Step[]) => void
     }
     const confirmations = got.tip - proven.height + 1;
     set("find", "done", `${confirmations.toLocaleString("en-US")} confirmation${confirmations === 1 ? "" : "s"}`);
-    return { ...proven, block, tip: got.tip, confirmations, range };
+    return { ...proven, block, tip: got.tip, confirmations, range: fetched };
   } catch (e) {
     set(current, "failed", e instanceof Plain ? e.message : undefined);
     throw e;
@@ -189,7 +190,8 @@ export async function keyNetwork(ufvk: string): Promise<Network> {
 export async function findPayments(ufvk: string, txid: string): Promise<{ height: number; payments: Payment[] }> {
   const w = await engine();
   const network = await keyNetwork(ufvk);
-  const tx = await postJson<{ height: number; hex: string }>("/api/tx", { network, txid: txid.trim().toLowerCase() }, { timeoutMs: 20000 });
+  const tx = await postJson<{ found: boolean; height: number; hex: string }>("/api/tx", { network, txid: txid.trim().toLowerCase() }, { timeoutMs: 20000 });
+  if (!tx.found) throw new Error("not found");
   if (!tx.height || tx.height > 1e9) throw new Plain("That transaction has not been mined yet. Wait for one confirmation, then try again.");
   const raw = new Uint8Array(tx.hex.match(/../g)!.map((h) => parseInt(h, 16)));
   const r = parse<{ payments: Payment[] }>(w.findPayments(ufvk, raw, tx.height));
