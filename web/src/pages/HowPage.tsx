@@ -33,7 +33,7 @@ export function HowPage() {
             <Panel eyebrow="Step by step" title="What happens">
               <ol className="flow">
                 {[
-                  ["You find the payment", "Your browser downloads the public transaction and tries your viewing key on each payment in it. It recognises the ones you received, and, with the outgoing part of the key, the ones you sent."],
+                  ["You find the payment", "Your browser downloads the public transaction and tries your viewing key on each payment in it. It recognizes the ones you received, and, with the outgoing part of the key, the ones you sent."],
                   ["You make the receipt", "For the payment you pick, the receipt records the recipient's address, the amount and the payment's random seed, next to the whole transaction. It starts with zr1 and fits in a link."],
                   ["They open the link", "The receipt sits after the # in the link. Browsers never send that part to a server, so the receipt reaches only the person you gave it to."],
                   ["Their browser checks it", "It works out the transaction ID from the transaction's bytes, rebuilds the payment from the three facts, decrypts it, and confirms the transaction is in the block the receipt names."],
