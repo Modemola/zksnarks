@@ -11,7 +11,7 @@ that payment's amount, recipient and memo, and nothing else: not the sender, not
 balance, not the history. It implements the output side of [ZIP 311 (Zcash Payment Disclosures)](https://zips.z.cash/zip-0311),
 which has been a draft with no shipping implementation.
 
-> Live site: _add Vercel URL_ · Demo video: _add link_ · Track: 04 Core & Tooling
+> Live site: https://unseall.vercel.app · Demo video: _add link_ · Track: 04 Core & Tooling
 
 ---
 
@@ -115,7 +115,7 @@ cargo install wasm-bindgen-cli --version 0.2.129
 scripts/build-wasm.sh
 ```
 
-Deploy: import the repository in Vercel with **Root Directory `web`**. No environment variables are needed; `LWD_MAINNET` and
+Deploy: import the repository in Vercel (Root Directory `web`, or the repository root: both work). No environment variables are needed; `LWD_MAINNET` and
 `LWD_TESTNET` override the lightwalletd servers.
 
 ## Repository

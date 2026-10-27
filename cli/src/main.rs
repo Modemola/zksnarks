@@ -29,7 +29,7 @@ struct Cli {
         long,
         global = true,
         env = "UNSEAL_RELAY",
-        default_value = "https://unseal-zcash.vercel.app"
+        default_value = "https://unseall.vercel.app"
     )]
     relay: String,
     /// Print JSON instead of text.
@@ -68,7 +68,7 @@ enum Cmd {
         #[arg(long)]
         height: Option<u32>,
         /// Base URL of the check page, for printing links.
-        #[arg(long, default_value = "https://unseal-zcash.vercel.app/check")]
+        #[arg(long, default_value = "https://unseall.vercel.app/check")]
         link_base: String,
     },
     /// Show what a receipt says, without checking it.
