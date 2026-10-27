@@ -825,3 +825,60 @@ mod tests {
         assert_eq!(format_zec(15_000), "0.00015");
     }
 }
+
+#[cfg(test)]
+mod mainnet {
+    use super::*;
+
+    const DEMO: &str = include_str!("../tests/data/mainnet-demo.zr");
+    const FORGED: &str = include_str!("../../docs/forged-receipt.txt");
+
+    /// The real payment on the site's home page: 0.001 ZEC, Ironwood, mainnet.
+    #[test]
+    fn demo_receipt_verifies() {
+        let r = Receipt::decode(DEMO).unwrap();
+        let p = verify(&r).unwrap();
+        assert_eq!(p.network, NetworkType::Main);
+        assert_eq!(p.pool, Pool::Ironwood);
+        assert_eq!(p.height, 3_531_890);
+        assert_eq!(
+            p.txid,
+            "04f89f774842deb5b61a444c0932a569a9ae27cd5834f7625c26eefe9df6e2d1"
+        );
+        assert_eq!(p.value, 100_000);
+        assert_eq!((p.action_index, p.action_count), (1, 2));
+        assert_eq!(
+            p.memo,
+            Memo::Text("Invoice #1042 - Unseal demo payment".into())
+        );
+        assert!(p.recipient.starts_with("u1egp0qx"));
+        assert_eq!(transaction_id(&r).unwrap(), p.txid);
+    }
+
+    #[test]
+    fn forged_demo_receipt_is_rejected() {
+        let r = Receipt::decode(FORGED).unwrap();
+        assert_eq!(r.value, 100_000_000);
+        assert_eq!(verify(&r), Err(Error::Mismatch));
+    }
+
+    #[test]
+    fn demo_receipt_against_the_other_output_is_rejected() {
+        let r = Receipt {
+            action_index: 0,
+            ..Receipt::decode(DEMO).unwrap()
+        };
+        assert_eq!(verify(&r), Err(Error::Mismatch));
+    }
+
+    #[test]
+    fn demo_receipt_with_wrong_height_still_proves_the_payment_but_names_the_block() {
+        // The height only selects consensus rules and the block to look in; the
+        // chain lookup (not this library) catches a wrong block.
+        let r = Receipt {
+            height: 3_531_891,
+            ..Receipt::decode(DEMO).unwrap()
+        };
+        assert_eq!(verify(&r).unwrap().height, 3_531_891);
+    }
+}

@@ -1028,3 +1028,11 @@ details.more { background: var(--coal); border: 1px solid var(--rule); box-shado
 @media (max-width: 520px) { .slip { transform: none; } }
 ol.flow li::before { border-radius: var(--r-sm); background: var(--coal); border: 1px solid var(--gold); color: var(--accent-deep); }
 ol.flow li:not(:last-child)::after { background: none; border-left: 1px dashed var(--rule); width: 0; opacity: 1; }
+.net { border-radius: var(--r-sm); box-shadow: none; border: 1px solid var(--rule); letter-spacing: 0.12em; }
+.net::before { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 25%, transparent); }
+@media (max-width: 1100px) { .net-tip { display: none; } }
+/* Keyboard focus is always visible: a gold ring on fields, buttons, links and scroll areas. */
+label.field input:focus-visible, label.field textarea:focus-visible, label.field select:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 1px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.table-wrap:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }

@@ -81,7 +81,7 @@ export function CreatePage() {
               }}
             >
               <label className="field">
-                <span>Unified full viewing key</span>
+                <span id="key-label">Unified full viewing key</span>
                 <textarea
                   className="receipt-input"
                   style={{ minHeight: "5rem" }}
@@ -91,6 +91,7 @@ export function CreatePage() {
                     setTouched((t) => ({ ...t, key: true }));
                   }}
                   placeholder="uview1…"
+                  aria-labelledby="key-label"
                   spellCheck={false}
                   autoComplete="off"
                   aria-invalid={!!shown("key")}
@@ -101,7 +102,7 @@ export function CreatePage() {
                 </small>
               </label>
               <label className="field">
-                <span>Transaction ID</span>
+                <span id="txid-label">Transaction ID</span>
                 <input
                   type="text"
                   value={txid}
@@ -110,6 +111,7 @@ export function CreatePage() {
                     setTouched((t) => ({ ...t, txid: true }));
                   }}
                   placeholder="64 characters, 0-9 and a-f"
+                  aria-labelledby="txid-label"
                   spellCheck={false}
                   autoComplete="off"
                   aria-invalid={!!shown("txid")}

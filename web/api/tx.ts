@@ -19,8 +19,11 @@ export default async function handler(req: Req, res: Res) {
   const txid = typeof body.txid === "string" ? body.txid.trim().toLowerCase() : "";
   if (!net || !/^[0-9a-f]{64}$/.test(txid)) return send(res, 400, { error: "A transaction ID is 64 characters of 0-9 and a-f." });
   try {
-    send(res, 200, await getTransaction(net, txid));
+    send(res, 200, { found: true, ...(await getTransaction(net, txid)) });
   } catch (e) {
+    // "No such transaction" is an answer, not a failure: report it as data so
+    // a mistyped ID doesn't show up as an error in the browser console.
+    if (/not found|NotFound|No such|-5\b/i.test(e instanceof Error ? e.message : String(e))) return send(res, 200, { found: false });
     upstream(res, e);
   }
 }
