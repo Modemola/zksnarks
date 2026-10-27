@@ -45,6 +45,19 @@ It ships as:
 
 It works for both Orchard and Ironwood payments on mainnet and testnet. That matters now: when we shielded our own mainnet test funds with the official wallet tooling, they landed in Ironwood.
 
+## For the judges: three one-click demos
+
+1. **Home page → Check this receipt.** A real mainnet payment, checked step by step in your browser.
+2. **Home page → Forged copy switch** (or **Try a forged copy** on the check page). The same receipt with the amount raised to
+   1 ZEC; it fails at the commitment match.
+3. **Make a receipt → Try it with the demo wallet.** A view-only key finds the payment and makes a receipt link, without the key
+   leaving the page.
+
+## What's next
+
+Sapling receipts, sender signatures (the input side of ZIP 311), a "Share receipt" button inside wallets, QR-sized receipts,
+and block header checks. Details in the README's Roadmap.
+
 ## Repository
 
 https://github.com/modemola/zksnarks (make it public before the deadline: Oct 28, 23:59 UTC)
