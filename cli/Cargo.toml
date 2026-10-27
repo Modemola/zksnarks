@@ -1,0 +1,17 @@
+[package]
+name = "unseal-cli"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Make and check Unseal receipts for shielded Zcash payments from the command line."
+
+[[bin]]
+name = "unseal"
+path = "src/main.rs"
+
+[dependencies]
+zreceipt = { path = "../core" }
+clap = { version = "4", features = ["derive", "env"] }
+ureq = { version = "2", features = ["json", "native-certs"] }
+serde_json = "1"
+hex = "0.4"
