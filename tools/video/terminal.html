@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Terminal</title><style>
+@font-face { font-family: Code; src: url(../../web/node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2); }
+@font-face { font-family: Code; font-weight: 600; src: url(../../web/node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2); }
+* { box-sizing: border-box; margin: 0; }
+body { width: 1280px; height: 720px; background: #f4f1e9; display: grid; place-items: center; font-family: Code; }
+.win { width: 1180px; height: 640px; background: #15171c; border-radius: 14px; box-shadow: 0 30px 60px rgba(21,23,28,.25); overflow: hidden; }
+.bar { height: 40px; background: #20232b; display: flex; align-items: center; gap: 8px; padding: 0 16px; color: #9aa0ab; font-size: 13px; }
+.bar i { width: 12px; height: 12px; border-radius: 50%; background: #3a3e48; }
+.bar span { margin-left: 14px; letter-spacing: .04em; }
+pre { padding: 22px 26px; color: #e9e6dd; font: 15px/1.6 Code; white-space: pre-wrap; word-break: break-all; }
+.p { color: #f4b728; } .ok { color: #7fd1a0; font-weight: 600; } .bad { color: #ff8a7a; font-weight: 600; } .dim { color: #9aa0ab; }
+.caret { display: inline-block; width: 9px; height: 18px; background: #f4b728; vertical-align: -3px; animation: b 1s steps(1) infinite; }
+@keyframes b { 50% { opacity: 0; } }
+</style></head><body><div class="win"><div class="bar"><i></i><i></i><i></i><span>unseal</span></div><pre id="t"></pre></div>
+<script>
+const script = [{"cmd": "unseal check receipt.txt --address u1egp0qxvvyf5ngje5xrcn2y836y4mphr7xzcj92a34sxd9kv54xel7fg9hxelkjh6tjykvz764hjqk2x6fj8avjpdhc32rrkrwvwusvvm", "out": ["Receipt checks out.", "", "  Amount     0.001 ZEC", "  Paid to    u1egp0qxvvyf5ngje5xrcn2y836y4mphr7xzcj92a34sxd9kv54xel7fg9hxelkjh6tjykvz764hjqk2x6fj8avjpdhc32rrkrwvwusvvm", "  Memo       Invoice #1042 - Unseal demo payment", "  Tx         04f89f774842deb5b61a444c0932a569a9ae27cd5834f7625c26eefe9df6e2d1", "  Block      3531890 (mainnet)", "  Pool       Ironwood, payment 2 of 2", "  Mined      yes, 717 confirmations (fetched blocks 3531888-3531903)", "  Your addr  yes, this paid your address", "", "Not revealed: the sender, the other 1 payment(s) in the transaction, and any later spend."], "ok": true}, {"cmd": "unseal check forged.txt", "out": ["unseal: The receipt does not match the payment on chain. It may have been altered."], "ok": false}];
+const t = document.getElementById("t");
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let html = "";
+const draw = (caret) => { t.innerHTML = html + (caret ? '<span class="caret"></span>' : ""); };
+window.done = false;
+window.play = async () => {
+  for (const [i, s] of script.entries()) {
+    html += '<span class="p">$ </span>';
+    draw(true); await sleep(500);
+    for (const ch of s.cmd) { html += esc(ch); draw(true); await sleep(ch === " " ? 40 : 14); }
+    await sleep(450); html += "\n"; draw(false); await sleep(600);
+    for (const line of s.out) {
+      let l = esc(line);
+      if (/^Receipt checks out/.test(line)) l = '<span class="ok">' + l + "</span>";
+      else if (/^unseal:/.test(line)) l = '<span class="bad">' + l + "</span>";
+      else if (/^Not revealed/.test(line)) l = '<span class="dim">' + l + "</span>";
+      html += l + "\n"; draw(false); await sleep(90);
+    }
+    html += "\n"; draw(true); await sleep(i === 0 ? 2200 : 600);
+  }
+  window.done = true;
+};
+draw(true);
+</script></body></html>

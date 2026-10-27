@@ -5,7 +5,8 @@
 **Receipts for shielded Zcash payments. Prove one payment to anyone, and keep everything else private.**
 
 Built for Zecathon, track 04: Core & Tooling. Live on Zcash mainnet:
-**<https://unseall.vercel.app>** · five minute walkthrough in [docs/JUDGES.md](docs/JUDGES.md).
+**<https://unseall.vercel.app>** · two minute [demo video](docs/video/unseal-demo.mp4) · five minute walkthrough in
+[docs/JUDGES.md](docs/JUDGES.md).
 
 ---
 
@@ -97,7 +98,8 @@ The full trust model, including what a receipt does not prove, is in [docs/SECUR
 | [`docs/SECURITY.md`](docs/SECURITY.md) | What a receipt proves, what it doesn't, and what the checker trusts |
 | [`docs/QUALITY.md`](docs/QUALITY.md) | Every test and audit, how to rerun it, and the result |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | Hosting the site, running your own relay, rebuilding the engine |
-| [`docs/VIDEO.md`](docs/VIDEO.md) | The two minute demo video script |
+| [`docs/video/unseal-demo.mp4`](docs/video/unseal-demo.mp4) | The two minute demo video |
+| [`docs/VIDEO.md`](docs/VIDEO.md) | How the video was made, and its script |
 | [`docs/brand/`](docs/brand) | Logo, cover, mark and the script that renders them |
 
 ## Repository layout
@@ -114,10 +116,12 @@ tools/
   e2e/             Browser checks of every flow against the live chain
   audit/           Accessibility, keyboard, 16 screen sizes, outages, Lighthouse
   brand/           The mark, and the scripts that render the brand images and screenshots
+  video/           Records, voices and cuts the demo video from the live site
 scripts/           Rebuilds the WebAssembly engine
 docs/              Judge walkthrough, security model, quality record, deploy, video script
   brand/           Logo, cover and mark
   screens/         Product screenshots
+  video/           The demo video
   hackathon/       Submission form text
 ```
 

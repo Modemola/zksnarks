@@ -66,4 +66,4 @@ checks.
 
 - Repository: <https://github.com/Modemola/zksnarks>
 - Live site: <https://unseall.vercel.app>
-- Video: to be added
+- Video: [docs/video/unseal-demo.mp4](../video/unseal-demo.mp4)

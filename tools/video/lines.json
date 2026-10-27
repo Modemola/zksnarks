@@ -1,0 +1,11 @@
+[
+ ["01-hero", "Zcash keeps payments private. But sometimes, you have to prove one: to an accountant, a client, or a court. Today, that means handing over a viewing key. And a viewing key opens your entire wallet."],
+ ["02-slip", "Unseal makes a receipt for one payment instead."],
+ ["03-check", "This is a real payment on Zcash mainnet. With one click, my browser rebuilds the transaction I.D. from the transaction itself, opens the one payment the receipt names, matches it to the commitment on chain, and finds it in its block. Zero point zero zero one Zcash, to this address, with this note. The other output in that transaction stays sealed."],
+ ["04-private", "What stayed private? The sender, the other payments, and whether the money ever moved again."],
+ ["05-forged", "Now, the same receipt with one change: the amount is raised to one Zcash. Same steps, same code. And it fails at the exact step that broke."],
+ ["06-make", "Making a receipt takes a wallet's viewing key and the transaction I.D. The key never leaves this page. Unseal finds what you sent or received, and gives you a link for each payment. Share the link, not your key."],
+ ["07-sapling", "It works in every shielded pool: Orchard, the new Ironwood pool, and Sapling. This is a second real payment, to a Sapling address."],
+ ["08-terminal", "For wallets, shops and payment systems, the same engine is a Rust library and a command line tool, with JSON output."],
+ ["09-how", "Built on the official Zcash libraries, it implements the output side of zip three eleven. Unseal: prove one payment. Keep the rest sealed."]
+]
