@@ -2,6 +2,8 @@
 
 const RULES: [RegExp, string][] = [
   [/user (rejected|cancel|closed)|cancelled|canceled|aborted by user/i, "Cancelled. Nothing was sent."],
+  [/^engine: .*(failed to fetch|networkerror|load failed|import)/i, "The receipt checker didn't download. Check your connection and try again."],
+  [/WebAssembly|wasm|CompileError/i, "This browser can't run the receipt checker. Update it, or use a current Chrome, Firefox, Safari or Edge."],
   [/failed to fetch|networkerror|load failed|network request failed/i, "Can't reach the server right now. Check your connection and try again; nothing was sent."],
   [/HTTP 429|too many requests/i, "The server is busy. Wait a few seconds and try again."],
   [/timeout|timed out/i, "The Zcash network took too long to answer. Try again in a moment."],

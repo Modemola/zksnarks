@@ -1062,3 +1062,35 @@ nav.main .short { display: none; }
 header.site .net { display: inline-block; }
 @media (max-width: 1380px) { .net-tip { display: none; } }
 @media (max-width: 900px) { header.site .net { order: 2; padding: 0.4rem 0.5rem; font-size: 9.5px; letter-spacing: 0.1em; } }
+
+/* ---------- Responsiveness pass ---------- */
+/* Long words wrap rather than overflow, at any text size. */
+p, li, dd, dt, td, h1, h2, h3, .lede { overflow-wrap: break-word; }
+ol.flow p, .panel p.small, .closing p { overflow-wrap: anywhere; }
+/* The slip's label column sizes to its content, so values keep room at large text sizes. */
+.slip-lines > div { grid-template-columns: fit-content(48%) minmax(0, 1fr); }
+/* Touch screens: every control at least 44 px, without changing the desktop look. */
+@media (pointer: coarse) {
+  nav.main a { min-height: 44px; display: inline-flex; align-items: center; }
+  .brand { min-height: 44px; }
+  .btn, .btn.small { min-height: 46px; }
+  .seg button { min-height: 44px; }
+  .copy { min-height: 44px; min-width: 52px; padding: 0.35rem 0.8rem; }
+  footer.site a { display: inline-flex; align-items: center; min-height: 44px; }
+  details.more > summary { min-height: 44px; }
+}
+
+/* Colour tokens as plain rgba (ink at fixed opacities), so borders and rules
+   look right in browsers without color-mix() (Safari before 16.2). */
+:root {
+  --rule: rgba(21, 23, 28, 0.16); --rule-soft: rgba(21, 23, 28, 0.09); --hairline: rgba(21, 23, 28, 0.1);
+  --axis: rgba(21, 23, 28, 0.2); --surface: rgba(21, 23, 28, 0.03); --raised: rgba(21, 23, 28, 0.06); --mark: rgba(21, 23, 28, 0.55);
+  --paper-shadow: 5px 5px 0 -1px rgba(21, 23, 28, 0.07), 0 1px 2px rgba(21, 23, 28, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --rule: rgba(236, 232, 222, 0.16); --rule-soft: rgba(236, 232, 222, 0.09); --hairline: rgba(236, 232, 222, 0.1);
+    --axis: rgba(236, 232, 222, 0.2); --surface: rgba(236, 232, 222, 0.03); --raised: rgba(236, 232, 222, 0.06); --mark: rgba(236, 232, 222, 0.45);
+    --paper-shadow: 5px 5px 0 -1px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}

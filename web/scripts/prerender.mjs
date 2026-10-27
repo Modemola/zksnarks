@@ -16,7 +16,7 @@ const outDir = resolve(arg("outDir", "dist"));
 const ssrDir = resolve("node_modules/.cache/prerender-ssr");
 
 await build({ mode, logLevel: "warn", build: { ssr: "src/entry-server.tsx", outDir: ssrDir, emptyOutDir: true, sourcemap: false } });
-const { render, PRERENDERED } = await import(pathToFileURL(join(ssrDir, "entry-server.js")).href);
+const { render, PRERENDERED, DESCRIPTIONS } = await import(pathToFileURL(join(ssrDir, "entry-server.js")).href);
 
 // On a second run index.html is already pre-rendered; the shell is in app.html.
 const shell = existsSync(join(outDir, "app.html")) ? "app.html" : "index.html";
@@ -35,14 +35,22 @@ const cssLink = template.match(/<link rel="stylesheet"[^>]*href="(\/assets\/inde
 const inlineCss = (html) =>
   cssLink ? html.replace(cssLink[0], () => `<style>${readFileSync(join(outDir, cssLink[1]), "utf8")}</style>`) : html;
 
+// The public address, for canonical links (from VITE_SITE_URL in .env).
+const site = (readFileSync(".env", "utf8").match(/^VITE_SITE_URL=(.*)$/m)?.[1] ?? "").trim().replace(/\/$/, "");
+
 for (const [path, title] of Object.entries(PRERENDERED)) {
   const app = await render(path);
   // A host that falls back to this file for another address must not show
   // this page's HTML there: clear it before anything is drawn.
-  const guard = `<script>(function(){var p=location.pathname.replace(/\\/+$/,"")||"/";if(p!==${JSON.stringify(path)})document.getElementById("root").innerHTML=""})()</script>`;
+  // External, so a strict Content-Security-Policy needs no inline scripts.
+  const guard = `<script src="/guard.js"></script>`;
   const html = inlineCss(template)
     .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
-    .replace('<div id="root"></div>', `<div id="root" data-prerendered>${app}</div>${guard}`);
+    .replace(/(<meta name="description" content=")[^"]*"/, `$1${DESCRIPTIONS[path]}"`)
+    .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${DESCRIPTIONS[path]}"`)
+    .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${site}${path === "/" ? "/" : path}"`)
+    .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${site}${path === "/" ? "/" : path}"`)
+    .replace('<div id="root"></div>', `<div id="root" data-prerendered data-path="${path}">${app}</div>${guard}`);
   // Both /how.html and /how/index.html: hosts differ in which one serves /how.
   const files = path === "/" ? [join(outDir, "index.html")] : [join(outDir, `${path.slice(1)}.html`), join(outDir, path.slice(1), "index.html")];
   for (const file of files) {
