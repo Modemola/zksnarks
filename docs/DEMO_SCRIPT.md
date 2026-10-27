@@ -14,7 +14,7 @@ About 260 words of voice-over at a calm pace. Numbers in [brackets] are read off
 | 1:00–1:12 | Check page: paste the forged copy (amount raised), check again; the step turns red | "Raise the amount in the receipt, and it fails, at the exact step that broke." | Forge it: it fails |
 | 1:12–1:35 | Make a receipt page: paste a viewing key and a transaction ID; the payments appear; click **Copy link** | "Making one: paste your viewing key and the transaction ID. The key stays in this page. Unseal finds what you sent or received, and gives you a link for each payment. Share the link, not your key." | Your key never leaves the page |
 | 1:35–1:48 | Terminal: `unseal check receipt.txt --address u1…` printing the result | "For wallets, shops and payment systems, the same engine is a Rust library and a command-line tool, with JSON output." | Rust library · CLI · WebAssembly |
-| 1:48–2:00 | How it works page, then back to the home page headline | "Built on the official Zcash libraries. It implements ZIP 311 payment disclosures, works for both Orchard and Ironwood, the pool new payments land in today. Unseal: prove one payment, keep the rest sealed." | [site URL] · github.com/modemola/zksnarks |
+| 1:48–2:00 | How it works page, then back to the home page headline | "Built on the official Zcash libraries. It implements ZIP 311 payment disclosures, works for both Orchard and Ironwood, the pool new payments land in today. Unseal: prove one payment, keep the rest sealed." | unseall.vercel.app · github.com/modemola/zksnarks |
 
 ## Honesty rules
 

@@ -1,0 +1,6 @@
+{
+  "name": "unseal",
+  "private": true,
+  "type": "module",
+  "description": "Deployment entry for the repository root. The site lives in web/."
+}

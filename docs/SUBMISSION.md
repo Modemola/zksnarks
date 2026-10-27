@@ -51,7 +51,7 @@ https://github.com/modemola/zksnarks (make it public before the deadline: Oct 28
 
 ## Demo
 
-_Vercel URL_
+https://unseall.vercel.app
 
 ## Video (2 minutes)
 
