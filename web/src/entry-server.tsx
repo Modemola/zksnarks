@@ -6,7 +6,7 @@ import { renderToString } from "react-dom/server";
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from "react-router-dom/server";
 import { routes } from "./routes";
 
-export { PRERENDERED } from "./routes";
+export { DESCRIPTIONS, PRERENDERED } from "./routes";
 
 export async function render(path: string): Promise<string> {
   const handler = createStaticHandler(routes);

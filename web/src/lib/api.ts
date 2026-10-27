@@ -1,9 +1,17 @@
 /** Talking to the relay: JSON, a timeout, and errors friendlyError understands. */
 export const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
+/** AbortSignal.timeout, with a fallback for browsers that lack it (Safari before 16). */
+function timeout(ms: number): AbortSignal {
+  if (typeof AbortSignal.timeout === "function") return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(new DOMException("timed out", "TimeoutError")), ms);
+  return c.signal;
+}
+
 async function request<T>(path: string, { timeoutMs = 8000, ...init }: RequestInit & { timeoutMs?: number } = {}): Promise<T> {
-  const res = await fetch(API_URL + path, { ...init, signal: AbortSignal.timeout(timeoutMs) }).catch((e: Error) => {
-    throw new Error(e.name === "TimeoutError" ? "timed out" : e.message);
+  const res = await fetch(API_URL + path, { ...init, signal: timeout(timeoutMs) }).catch((e: Error) => {
+    throw new Error(e.name === "TimeoutError" || e.name === "AbortError" ? "timed out" : e.message);
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { error?: string } | null;

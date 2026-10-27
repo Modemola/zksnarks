@@ -3,11 +3,13 @@ import { brand } from "./brand";
 import { Layout } from "./components/Layout";
 import { ToastProvider } from "./lib/toasts";
 import { Home } from "./pages/Home";
+import { RouteError } from "./pages/RouteError";
 
 // Shared by the browser and the build-time pre-renderer (entry-server.tsx).
 export const routes: RouteObject[] = [
   {
     // Notifications live inside the router: their messages can contain links.
+    errorElement: <RouteError />,
     element: (
       <ToastProvider>
         <Layout />
@@ -34,4 +36,12 @@ export const PRERENDERED: Record<string, string> = {
   "/check": `Check a receipt · ${brand.name}`,
   "/create": `Make a receipt · ${brand.name}`,
   "/how": `How it works · ${brand.name}`,
+};
+
+/** Each pre-rendered page's description, for search results and link previews. */
+export const DESCRIPTIONS: Record<string, string> = {
+  "/": "Receipts for shielded Zcash payments. Prove one payment to an accountant, a shop or a court without opening your wallet. Checked in the browser.",
+  "/check": "Check an Unseal receipt in your browser: it opens one shielded Zcash payment, matches it to the chain, and reveals nothing else.",
+  "/create": "Make a receipt for one shielded Zcash payment you sent or received. Your viewing key never leaves the page.",
+  "/how": "How Unseal receipts work: one payment opened from three facts, checked against the Zcash chain, and why a receipt can't lie.",
 };

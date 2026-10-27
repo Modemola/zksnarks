@@ -11,10 +11,15 @@ let wasm: Promise<Wasm> | null = null;
 
 /** Loads the receipt engine once. Safe to call early to warm it up. */
 export function engine(): Promise<Wasm> {
-  wasm ??= import("../zreceipt/zreceipt").then(async (m) => {
-    await m.default({ module_or_path: wasmUrl });
-    return m;
-  });
+  wasm ??= import("../zreceipt/zreceipt")
+    .then(async (m) => {
+      await m.default({ module_or_path: wasmUrl });
+      return m;
+    })
+    .catch((e: unknown) => {
+      wasm = null; // the next click tries again
+      throw new Error(`engine: ${e instanceof Error ? e.message : String(e)}`);
+    });
   return wasm;
 }
 
@@ -24,9 +29,7 @@ export function engine(): Promise<Wasm> {
  */
 export function warmEngine() {
   if (typeof window === "undefined" || wasm) return;
-  const go = () => void engine().catch(() => {
-    wasm = null; // try again on the real click
-  });
+  const go = () => void engine().catch(() => undefined); // the real click retries
   if ("requestIdleCallback" in window) window.requestIdleCallback(go, { timeout: 3000 });
   else setTimeout(go, 1500);
 }
