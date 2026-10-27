@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { friendlyError } from "../lib/errors";
 import { checkReceipt, freshSteps, memoText, short, type Checked, type Step } from "../lib/receipts";
-import { Hash, Panel, Stamp } from "./ui";
+import { Panel, Plain, Stamp } from "./ui";
 
 /**
  * The signature moment: one click checks a receipt in the visitor's browser,
@@ -122,7 +122,7 @@ function Outcome({ r }: { r: Checked }) {
         <div>
           <dt>Paid to</dt>
           <dd>
-            <Hash value={r.recipient} />
+            <Plain value={r.recipient} />
           </dd>
         </div>
         <div>
@@ -132,7 +132,7 @@ function Outcome({ r }: { r: Checked }) {
         <div>
           <dt>Transaction</dt>
           <dd>
-            <Hash value={r.txid} />
+            <Plain value={r.txid} />
           </dd>
         </div>
         <div>
@@ -152,7 +152,7 @@ function Outcome({ r }: { r: Checked }) {
         <ol className="explain-steps">
           <li>
             <strong>The receipt carried the whole transaction.</strong> Your browser worked out its ID from the bytes themselves, so the
-            transaction can't have been swapped or edited.
+            payment data can't have been swapped or edited.
           </li>
           <li>
             <strong>It opened exactly one payment.</strong> The receipt holds the three facts that define that payment. Your browser rebuilt

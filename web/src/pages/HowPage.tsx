@@ -57,7 +57,7 @@ export function HowPage() {
                 <li>A higher amount gives a different fingerprint, so the receipt is rejected.</li>
                 <li>A different address can't decrypt the payment at all.</li>
                 <li>Pointing the receipt at another payment in the same transaction fails the same way.</li>
-                <li>Editing the transaction changes its ID, which then isn't in the block.</li>
+                <li>Editing the transaction's payment data changes its ID, which then isn't in the block. (Its proofs and signatures sit outside the ID by Zcash's design; the network checked them when it mined it, and they change nothing the receipt states.)</li>
               </ul>
               <details className="more">
                 <summary>The cryptography, for the curious</summary>

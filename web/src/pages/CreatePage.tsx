@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Hash, PageHead, Panel, useTitle } from "../components/ui";
+import { PageHead, Panel, Plain, useTitle } from "../components/ui";
 import { friendlyError } from "../lib/errors";
 import { engine, findPayments, keyNetwork, memoText, receiptLink, type Payment } from "../lib/receipts";
 import { useToasts } from "../lib/toasts";
@@ -151,7 +151,7 @@ export function CreatePage() {
                         <div>
                           <dt>To</dt>
                           <dd>
-                            <Hash value={pay.recipient} />
+                            <Plain value={pay.recipient} />
                           </dd>
                         </div>
                         <div>

@@ -21,7 +21,7 @@ which has been a draft with no shipping implementation.
 |---|---|
 | Open the site and press **Check this receipt** | A real mainnet receipt checked step by step in your browser: transaction ID rebuilt from its bytes, one payment opened, matched to the on-chain commitment, found in its block. The opened payment sits beside the sealed ones, then "What just happened" and "What stayed private". |
 | Open **Check a receipt** and paste your own address into "Was it paid to you?" | The page says whether the receipt's payment went to that address. |
-| Change one character of the receipt and check it again | It fails, and the page names the step that failed. |
+| Change the amount, the address or the payment data in a receipt and check it again | It fails, and the page names the step that failed. |
 | Open **Make a receipt**, paste a unified full viewing key (`uview1…`) and a transaction ID | The payments that key sent or received in that transaction, each with a link, a file download and a check button. The key never leaves the page. |
 | `unseal check <receipt>` in a terminal | The same check from the CLI, with `--json` for scripts. |
 
@@ -54,7 +54,7 @@ which has been a draft with no shipping implementation.
 | Claim | Why you can believe it |
 |---|---|
 | The amount, recipient and memo are what was paid | The note is rebuilt from the receipt and must equal the one committed on chain (`cmx`); the memo only decrypts with the key derived from that exact note. A higher amount, another address or another output in the same transaction fails. Tested in `core/src/lib.rs`. |
-| The transaction is the one on chain | Its ID is recomputed from the receipt's bytes (ZIP 244), so editing any byte changes the ID, which is then not in the block. |
+| The transaction is the one on chain | Its ID is recomputed from the receipt's bytes (ZIP 244). Editing the payment data (amounts, outputs, memos, anything the ID covers) changes the ID, which is then not in the block. The proofs and signatures are deliberately outside the ID in Zcash, so the checker doesn't rely on them: the network verified them when it mined the transaction, and editing them can't change any fact the receipt states. |
 | It was mined | The transaction ID appears in the block at the stated height, fetched from a public lightwalletd server. |
 | Nothing else is revealed | The receipt holds no key. `rseed` opens one note; it does not reveal its nullifier (that needs the recipient's nullifier key), so it can't be used to see when or whether the money moved on. |
 | The relay can't tell what you checked | Checking asks for an aligned 16-block range, never a transaction. Making a receipt sends the txid in a POST body (not the URL, so not in request logs) and nothing is stored. |
