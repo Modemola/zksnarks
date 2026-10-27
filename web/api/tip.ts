@@ -1,5 +1,5 @@
-import { tipHeight } from "./_lib/lwd";
-import { network, query, send, upstream, type Req, type Res } from "./_lib/http";
+import { tipHeight } from "./_lib/lwd.js";
+import { network, query, send, upstream, type Req, type Res } from "./_lib/http.js";
 
 /** GET /api/tip?network=mainnet — the current block height. */
 export default async function handler(req: Req, res: Res) {

@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Network } from "./lwd";
+import type { Network } from "./lwd.js";
 
 export type Req = IncomingMessage & { body?: unknown };
 export type Res = ServerResponse;

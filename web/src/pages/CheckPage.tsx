@@ -6,7 +6,16 @@ import { brand } from "../brand";
 import { addressMatches, warmEngine, type Checked } from "../lib/receipts";
 import { FORGED, SAMPLE } from "../lib/sample";
 
-const fromHash = () => (typeof location === "undefined" ? "" : decodeURIComponent(location.hash.slice(1)));
+/** The receipt in the link, if any. A link mangled in transit (a stray %) must not crash the page. */
+const fromHash = () => {
+  if (typeof location === "undefined") return "";
+  const raw = location.hash.slice(1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
 
 /** Check a receipt from a link (after #) or pasted in. */
 export function CheckPage() {
@@ -40,10 +49,19 @@ export function CheckPage() {
   const trimmed = text.trim();
   const looksRight = trimmed.startsWith("zr1") || trimmed.includes("#zr1");
   const [source, setSource] = useState("The receipt you pasted");
+  /**
+   * Keep the receipt being checked in the address bar (after #, which never
+   * reaches a server), so a refresh keeps it and the address is a shareable link.
+   */
+  const remember = (receipt: string) => {
+    const r = receipt.includes("#") ? receipt.slice(receipt.lastIndexOf("#") + 1) : receipt;
+    history.replaceState(history.state, "", `${location.pathname}#${r.replace(/\s+/g, "")}`);
+  };
   const submit = () => {
     setResult(null);
     setFromLink(false);
     setSource("The receipt you pasted");
+    remember(trimmed);
     setActive(trimmed);
   };
   /** One click to see it work, for anyone without a receipt to hand. */
@@ -52,6 +70,7 @@ export function CheckPage() {
     setFromLink(false);
     setSource(label);
     setText(receipt);
+    remember(receipt);
     setActive(receipt);
   };
   const tryButtons = (
@@ -141,6 +160,8 @@ function ReceiptInput({ text, setText, looksRight, onSubmit }: { text: string; s
           placeholder="zr1… or https://…/check#zr1…"
           aria-labelledby={`${id}-label`}
           spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
           autoComplete="off"
           aria-invalid={showHint}
           aria-describedby={`${id}-help`}
@@ -162,7 +183,7 @@ function MatchAddress({ receipt, result }: { receipt: string; result: Checked | 
   const [match, setMatch] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
-    const a = address.trim();
+    const a = address.replace(/\s+/g, "");
     if (!receipt || !result || a.length < 20) {
       setMatch(null);
       return;
@@ -183,6 +204,8 @@ function MatchAddress({ receipt, result }: { receipt: string; result: Checked | 
           placeholder="u1…"
           aria-labelledby="match-label"
           spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
           autoComplete="off"
           aria-describedby="match-help"
         />

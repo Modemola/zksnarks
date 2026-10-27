@@ -9,7 +9,7 @@ and a viewing key opens the whole wallet: every payment, past and future. So peo
 Unseal makes a **receipt for one payment**. Anyone can check it in their browser, against the chain, in a few seconds. It shows
 that payment's amount, recipient and memo, and nothing else: not the sender, not the other payments in the transaction, not the
 balance, not the history. It implements the output side of [ZIP 311 (Zcash Payment Disclosures)](https://zips.z.cash/zip-0311),
-which has been a draft with no shipping implementation.
+which is still a draft; we found no wallet or tool that ships it.
 
 > Live site: https://unseall.vercel.app · Demo video: _add link_ · Track: 04 Core & Tooling
 
@@ -64,8 +64,8 @@ payment reached *you*, compare the address; the check page and `unseal check --a
 
 ## Technology used
 
-- **Zcash Orchard and Ironwood** shielded pools. Receipts work for both, on mainnet and testnet. Current wallets put new shielded
-  funds into Ironwood (our own mainnet test funds landed there), so both are needed today.
+- **Zcash Orchard and Ironwood** shielded pools. Receipts work for both, on mainnet and testnet. Both are in use today: when we
+  shielded our own mainnet test funds with the official wallet tooling, they landed in Ironwood.
 - **librustzcash crates**, unchanged: `orchard` 0.16 (notes, keys, note encryption domains), `zcash_note_encryption` 0.5
   (`try_output_recovery_with_pkd_esk`, `try_note_decryption`, `try_output_recovery_with_ovk`), `zcash_primitives` 0.31
   (v5/v6 transaction parsing, ZIP 244 txids), `zcash_address` 0.14 (unified addresses and viewing keys).
@@ -95,6 +95,8 @@ Nothing on the site is simulated. Every check run on it, with results, is in [`d
   functions) to take this site out of the path; a future version could check block headers' proof of work.
 - **Receipts are about 12 to 20 KB** because they carry the transaction, so they work as links and files rather than QR codes.
   This keeps the check independent of any server until the last step.
+- **A receipt points to its whole transaction.** If that transaction also spent transparent funds, those inputs are public
+  on chain anyway; fully shielded payments (like the demo) show nothing about the sender.
 - **The sender isn't identified.** Signing a receipt with the spend authorization key (the other half of ZIP 311) would add that.
 - **Making a receipt reveals the transaction ID to the relay** (as any block explorer would). The CLI accepts a raw transaction
   file to avoid even that.

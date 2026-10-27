@@ -43,7 +43,7 @@ It ships as:
 - `unseal`, a CLI with JSON output for wallets, shops and payment systems
 - a site to make and check receipts, with a dependency-free lightwalletd relay you can self-host
 
-It works for both Orchard and Ironwood payments on mainnet and testnet. That matters now: our own mainnet test funds landed in Ironwood, which is where current wallets put new shielded payments.
+It works for both Orchard and Ironwood payments on mainnet and testnet. That matters now: when we shielded our own mainnet test funds with the official wallet tooling, they landed in Ironwood.
 
 ## Repository
 
