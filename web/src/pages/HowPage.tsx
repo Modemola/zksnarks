@@ -166,8 +166,8 @@ unseal inspect zr1…                          # read without checking`}</code>
           </Panel>
           <Panel className="quiet" eyebrow="Supported today">
             <ul className="small" style={{ margin: 0, paddingLeft: "1.1rem", color: "var(--ink-secondary)" }}>
-              <li>Orchard payments on mainnet and testnet</li>
-              <li>Ironwood payments (NU7, live on testnet)</li>
+              <li>Orchard payments, mainnet and testnet</li>
+              <li>Ironwood payments, mainnet and testnet: where wallets now put new shielded funds</li>
               <li>Not yet: Sapling and transparent payments</li>
             </ul>
           </Panel>

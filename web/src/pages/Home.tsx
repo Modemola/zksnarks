@@ -152,7 +152,7 @@ export function Home() {
               The check asks a Zcash server, through our relay, for a range of blocks. It trusts that server to report the chain honestly, as
               a light wallet does. Run your own relay to remove us from that path.
             </li>
-            <li>It works for Orchard payments (most of today's mainnet) and Ironwood (from the NU7 upgrade). Sapling is not supported yet.</li>
+            <li>It works for Orchard and Ironwood payments, the two pools wallets use for unified addresses. Sapling is not supported yet.</li>
           </ul>
         </Panel>
       </Reveal>

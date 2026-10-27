@@ -73,9 +73,9 @@ pub enum Error {
 /// The shielded pool an output lives in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pool {
-    /// Orchard: today's mainnet pool.
+    /// Orchard: the original pool for unified addresses.
     Orchard,
-    /// Ironwood: the pool that takes new payments from NU7 on.
+    /// Ironwood: the newer pool where wallets now put new shielded payments.
     Ironwood,
 }
 
