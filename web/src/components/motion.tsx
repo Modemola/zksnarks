@@ -94,15 +94,27 @@ export function useTilt<T extends HTMLElement>(maxX = 10, maxY = 14, rest = { rx
     const el = ref.current;
     if (!el || reducedMotion() || !window.matchMedia("(pointer: fine)").matches) return;
     const host = el.parentElement ?? el;
-    const move = (e: PointerEvent) => {
+    // One update per frame at most, however fast the pointer events arrive.
+    let raf = 0;
+    let last: PointerEvent | null = null;
+    const apply = () => {
+      raf = 0;
+      if (!last) return;
       const r = host.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5;
-      const y = (e.clientY - r.top) / r.height - 0.5;
+      const x = (last.clientX - r.left) / r.width - 0.5;
+      const y = (last.clientY - r.top) / r.height - 0.5;
       el.classList.add("live");
       el.style.setProperty("--rx", `${(-y * maxX).toFixed(2)}deg`);
       el.style.setProperty("--ry", `${(x * maxY).toFixed(2)}deg`);
     };
+    const move = (e: PointerEvent) => {
+      last = e;
+      raf ||= requestAnimationFrame(apply);
+    };
     const leave = () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      last = null;
       el.classList.remove("live");
       el.style.setProperty("--rx", `${rest.rx}deg`);
       el.style.setProperty("--ry", `${rest.ry}deg`);
@@ -110,6 +122,7 @@ export function useTilt<T extends HTMLElement>(maxX = 10, maxY = 14, rest = { rx
     host.addEventListener("pointermove", move);
     host.addEventListener("pointerleave", leave);
     return () => {
+      cancelAnimationFrame(raf);
       host.removeEventListener("pointermove", move);
       host.removeEventListener("pointerleave", leave);
     };
@@ -123,7 +136,17 @@ export function useAmbientMotion() {
     let raf = 0;
     const fine = window.matchMedia("(pointer: fine)").matches && !reducedMotion();
     let magnet: HTMLElement | null = null;
+    let moveRaf = 0;
+    let pending: PointerEvent | null = null;
+    // Pointer events can arrive several times per frame; do the work once per frame.
     const onMove = (e: PointerEvent) => {
+      pending = e;
+      moveRaf ||= requestAnimationFrame(() => {
+        moveRaf = 0;
+        if (pending) applyMove(pending);
+      });
+    };
+    const applyMove = (e: PointerEvent) => {
       const btn = fine ? ((e.target as Element | null)?.closest?.(".btn:not(:disabled)") as HTMLElement | null) : null;
       if (magnet && magnet !== btn) {
         magnet.style.setProperty("--tx", "0px");
@@ -168,6 +191,7 @@ export function useAmbientMotion() {
       document.removeEventListener("pointerout", onLeave as EventListener);
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(moveRaf);
     };
   }, []);
 }

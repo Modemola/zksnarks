@@ -45,6 +45,8 @@ export function Story({ eyebrow, title, steps, label }: { eyebrow: string; title
       const el = ref.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
+      // Off screen: nothing to move, so skip the style update entirely.
+      if (r.bottom < 0 || r.top > window.innerHeight) return;
       const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - window.innerHeight)));
       el.style.setProperty("--p", p.toFixed(4));
       setStep(Math.min(last, Math.floor(p * (steps.length + 0.2))));
