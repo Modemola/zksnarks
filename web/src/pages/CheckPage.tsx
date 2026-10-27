@@ -2,7 +2,9 @@ import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { ReceiptCheck } from "../components/ReceiptCheck";
 import { PageHead, Panel, useTitle } from "../components/ui";
-import { addressMatches, type Checked } from "../lib/receipts";
+import { brand } from "../brand";
+import { addressMatches, warmEngine, type Checked } from "../lib/receipts";
+import { FORGED, SAMPLE } from "../lib/sample";
 
 const fromHash = () => (typeof location === "undefined" ? "" : decodeURIComponent(location.hash.slice(1)));
 
@@ -13,6 +15,11 @@ export function CheckPage() {
   const [active, setActive] = useState("");
   const [fromLink, setFromLink] = useState(false);
   const [result, setResult] = useState<Checked | null>(null);
+  useEffect(warmEngine, []);
+  // The tab says what was proved, so a verified receipt reads at a glance.
+  useEffect(() => {
+    if (result) document.title = `Paid ${result.valueZec} ZEC · ${brand.name}`;
+  }, [result]);
 
   // A receipt in the link is checked straight away. Read after the first render,
   // so the pre-rendered page and the browser agree.
@@ -32,11 +39,32 @@ export function CheckPage() {
 
   const trimmed = text.trim();
   const looksRight = trimmed.startsWith("zr1") || trimmed.includes("#zr1");
+  const [source, setSource] = useState("The receipt you pasted");
   const submit = () => {
     setResult(null);
     setFromLink(false);
+    setSource("The receipt you pasted");
     setActive(trimmed);
   };
+  /** One click to see it work, for anyone without a receipt to hand. */
+  const tryOne = (receipt: string, label: string) => {
+    setResult(null);
+    setFromLink(false);
+    setSource(label);
+    setText(receipt);
+    setActive(receipt);
+  };
+  const tryButtons = (
+    <div className="try">
+      <span className="small muted">No receipt to hand?</span>
+      <button type="button" className="btn small secondary" onClick={() => tryOne(SAMPLE.receipt, "The demo receipt")}>
+        Try the demo receipt
+      </button>
+      <button type="button" className="btn small secondary" onClick={() => tryOne(FORGED.receipt, "A forged copy: amount raised to 1 ZEC")}>
+        Try a forged copy
+      </button>
+    </div>
+  );
 
   return (
     <>
@@ -51,19 +79,21 @@ export function CheckPage() {
               key={active}
               receipt={active}
               autoStart
-              eyebrow={fromLink ? "From the link you opened" : "The receipt you pasted"}
+              eyebrow={fromLink ? "From the link you opened" : source}
               title="The check"
               onResult={setResult}
             />
           ) : (
             <Panel eyebrow="Step 1" title="Paste the receipt">
               <ReceiptInput text={text} setText={setText} looksRight={looksRight} onSubmit={submit} />
+              {tryButtons}
             </Panel>
           )}
           {active && (
             <details className="more">
               <summary>Check a different receipt</summary>
               <ReceiptInput text={text} setText={setText} looksRight={looksRight} onSubmit={submit} />
+              {tryButtons}
             </details>
           )}
         </div>

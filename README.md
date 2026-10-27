@@ -21,8 +21,8 @@ which has been a draft with no shipping implementation.
 |---|---|
 | Open the site and press **Check this receipt** | A real mainnet receipt checked step by step in your browser: transaction ID rebuilt from its bytes, one payment opened, matched to the on-chain commitment, found in its block. The opened payment sits beside the sealed ones, then "What just happened" and "What stayed private". |
 | Open **Check a receipt** and paste your own address into "Was it paid to you?" | The page says whether the receipt's payment went to that address. |
-| Change the amount, the address or the payment data in a receipt and check it again | It fails, and the page names the step that failed. |
-| Open **Make a receipt**, paste a unified full viewing key (`uview1…`) and a transaction ID | The payments that key sent or received in that transaction, each with a link, a file download and a check button. The key never leaves the page. |
+| Flip the switch to **Forged copy** (the same receipt with the amount raised to 1 ZEC) | The check fails at "Match it to the commitment", and the page says so plainly. |
+| Open **Make a receipt** and press **Try it with the demo wallet** (or paste your own `uview1…` key and a transaction ID) | The payments that key sent or received, each with a link, a file download and a check button. The key never leaves the page. |
 | `unseal check <receipt>` in a terminal | The same check from the CLI, with `--json` for scripts. |
 
 ## How it works

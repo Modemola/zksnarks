@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHead, Panel, Plain, useTitle } from "../components/ui";
 import { friendlyError } from "../lib/errors";
-import { engine, findPayments, keyNetwork, memoText, receiptLink, type Payment } from "../lib/receipts";
+import { engine, findPayments, warmEngine, keyNetwork, memoText, receiptLink, type Payment } from "../lib/receipts";
+import { DEMO_WALLET } from "../lib/sample";
 import { useToasts } from "../lib/toasts";
 
 const KEY_RE = /^uview(test)?1[02-9ac-hj-np-z]+$/;
@@ -34,22 +35,44 @@ export function CreatePage() {
   const p = problems(key, txid);
   const shown = (k: "key" | "txid") => (touched[k] ? p[k] : undefined);
 
-  const submit = async () => {
-    setTouched({ key: true, txid: true });
-    if (p.key || p.txid) return;
+  const run = async (k: string, t: string) => {
     setBusy(true);
     setErr(null);
     setFound(null);
     try {
       await engine();
-      await keyNetwork(key);
-      setFound(await findPayments(key, txid));
+      await keyNetwork(k);
+      setFound(await findPayments(k, t));
     } catch (e) {
       setErr(friendlyError(e));
     } finally {
       setBusy(false);
     }
   };
+  const submit = () => {
+    setTouched({ key: true, txid: true });
+    if (p.key || p.txid) return;
+    void run(key, txid);
+  };
+  /** Fill in the demo shop's view-only key and the demo payment, and look it up. */
+  const tryDemo = () => {
+    setKey(DEMO_WALLET.key);
+    setTxid(DEMO_WALLET.txid);
+    setTouched({});
+    void run(DEMO_WALLET.key, DEMO_WALLET.txid);
+  };
+
+  // Results appear below the form: bring them into view (phones especially)
+  // and move focus there, so keyboard and screen reader users land on them too.
+  const results = useRef<HTMLDivElement>(null);
+  useEffect(warmEngine, []);
+  useEffect(() => {
+    const el = results.current;
+    if (!found || !el) return;
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (el.getBoundingClientRect().top > window.innerHeight - 120) el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
+    el.focus({ preventScroll: true });
+  }, [found]);
 
   const copy = (text: string, what: string) =>
     navigator.clipboard?.writeText(text).then(
@@ -124,6 +147,13 @@ export function CreatePage() {
               <button className="btn block" type="submit" disabled={busy}>
                 {busy ? "Looking…" : "Find my payments"}
               </button>
+              <div className="try">
+                <span className="small muted">No wallet to hand?</span>
+                <button type="button" className="btn small secondary" onClick={tryDemo} disabled={busy}>
+                  Try it with the demo wallet
+                </button>
+                <span className="small muted">Our demo shop's view-only key; its one payment is the demo.</span>
+              </div>
             </form>
             {err && (
               <div className="note critical" role="alert" style={{ marginTop: "0.9rem" }}>
@@ -133,6 +163,7 @@ export function CreatePage() {
           </Panel>
 
           {found && (
+            <div ref={results} tabIndex={-1} className="results-anchor" aria-label="Payments found">
             <Panel eyebrow="Step 2" title={found.payments.length ? "Choose the payment" : "No payments found"}>
               {found.payments.length === 0 ? (
                 <p className="small" style={{ margin: 0, color: "var(--ink-secondary)" }}>
@@ -182,6 +213,7 @@ export function CreatePage() {
                 </ul>
               )}
             </Panel>
+            </div>
           )}
         </div>
         <aside className="stack">
