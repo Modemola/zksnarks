@@ -13,6 +13,11 @@ which is still a draft; we found no wallet or tool that ships it.
 
 > Live site: https://unseall.vercel.app · Demo video: _add link_ · Track: 04 Core & Tooling
 
+<p align="center">
+  <img src="docs/images/home.png" alt="Unseal home page: a paper receipt for a 0.001 ZEC payment with a wax seal" width="49%">
+  <img src="docs/images/check.png" alt="A receipt checked in the browser: six steps passed, one output opened, the other sealed" width="49%">
+</p>
+
 ---
 
 ## Try it in two minutes
@@ -83,7 +88,7 @@ payment reached *you*, compare the address; the check page and `unseal check --a
 | Browser engine (WebAssembly) | **Working.** Used by every check on the site |
 | Relay (`web/api/`) against mainnet and testnet lightwalletd | **Working** |
 | Check page, make page, CLI | **Working** |
-| The home page's sample receipt | _Pending_: a real mainnet payment made for this demo; added as soon as the test funds confirm |
+| The home page's demo receipt | **Real.** A 0.001 ZEC Ironwood payment on mainnet (block 3,531,890), plus a forged copy that fails |
 | Sapling and transparent payments | _Not supported_ (see Limits) |
 
 Nothing on the site is simulated. Every check run on it, with results, is in [`docs/AUDIT.md`](docs/AUDIT.md). The receipt drawn in the home page hero is the real demo payment.
@@ -100,6 +105,18 @@ Nothing on the site is simulated. Every check run on it, with results, is in [`d
 - **The sender isn't identified.** Signing a receipt with the spend authorization key (the other half of ZIP 311) would add that.
 - **Making a receipt reveals the transaction ID to the relay** (as any block explorer would). The CLI accepts a raw transaction
   file to avoid even that.
+
+## Roadmap
+
+1. **Sapling receipts.** The same check with Sapling's note encryption domain, so older wallets' payments can be proved too.
+2. **Sender signatures.** Sign a receipt with the spend authorization key (the input side of ZIP 311), so a receipt can also
+   prove who paid.
+3. **Receipts in wallets.** A "Share receipt" button next to each sent payment, using the `zreceipt` crate or its WebAssembly
+   build directly. The CLI's `--json` output is the integration point for shops and payment processors today.
+4. **QR-sized receipts.** A compact form that leaves the transaction out and fetches it by ID at check time, trading one more
+   relay request for a receipt small enough to print.
+5. **Header checks.** Verify the block's proof of work and chain position, so chain inclusion doesn't rest on one lightwalletd
+   server.
 
 ## Run it yourself
 
