@@ -30,6 +30,8 @@ export function ReceiptCheck({
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Checked | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // A receipt that fails a check, versus a check that couldn't run (network).
+  const [rejected, setRejected] = useState(true);
   const started = useRef(false);
 
   const start = async () => {
@@ -43,6 +45,7 @@ export function ReceiptCheck({
       setResult(r);
       onResult?.(r);
     } catch (e) {
+      setRejected(!!(e instanceof Error && (e as { plain?: boolean }).plain));
       setErr(friendlyError(e));
     } finally {
       setRunning(false);
@@ -82,7 +85,8 @@ export function ReceiptCheck({
       )}
       {err && (
         <div className="note critical" role="alert" style={{ margin: "0.9rem 0 0" }}>
-          <strong>This receipt did not check out.</strong> {err}
+          <strong>{rejected ? "This receipt did not check out." : "The check couldn't finish."}</strong> {err}
+          {!rejected && " Nothing about the receipt was wrong so far."}
         </div>
       )}
       {result && <Outcome r={result} />}
