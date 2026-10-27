@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { CountUp, Reveal, useTilt } from "../components/motion";
+import { Reveal } from "../components/motion";
 import { ReceiptCheck } from "../components/ReceiptCheck";
-import { Story } from "../components/Story";
-import { Panel, Stamp, useTitle, Words } from "../components/ui";
+import { Slip } from "../components/Slip";
+import { Panel, useTitle, Words } from "../components/ui";
 import { SAMPLE } from "../lib/sample";
 
 /**
@@ -33,84 +33,81 @@ export function Home() {
             </Link>
           </div>
         </div>
-        <HeroCard />
+        <Slip />
       </section>
 
       <ClaimAndCheck />
 
-      <section>
-        <div className="bento">
-          <Reveal className="tile ink span-2 tall" i={0}>
-            <div>
-              <span className="label">What a receipt opens</span>
-              <div className="big">
-                <CountUp value={1} ms={900} /> payment
-              </div>
-              <p>Amount, recipient and note of one payment. Not the sender, not the balance, not the history.</p>
-            </div>
-          </Reveal>
-          <Reveal className="tile glass span-2" i={1}>
-            <div className="row">
-              <div>
-                <span className="label">Keys you hand over</span>
-                <div className="mid">
-                  <CountUp value={0} />
-                </div>
-                <p>Your viewing key never leaves your browser. The receipt holds no key at all.</p>
-              </div>
-              <div className="block3d" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-          </Reveal>
-          <Reveal className="tile" i={2}>
-            <span className="label">Blocks fetched per check</span>
-            <div className="mid">
-              <CountUp value={16} />
-            </div>
-            <p>a whole range, so no server learns which payment you checked</p>
-          </Reveal>
-          <Reveal className="tile" i={3}>
-            <span className="label">Accounts or installs</span>
-            <div className="mid">
-              <CountUp value={0} />
-            </div>
-            <p>open the link; the check runs in the page</p>
-          </Reveal>
+      <Reveal as="section">
+        <div className="section-head">
+          <p className="eyebrow">How it works</p>
+          <h2>
+            Sealed on chain. <em>Unsealed</em> for one reader.
+          </h2>
+          <p>A shielded transaction is a row of encrypted outputs. A receipt carries the facts that open exactly one of them.</p>
         </div>
-      </section>
-
-      <Story
-        label="How it works"
-        eyebrow="How it works"
-        title={
-          <>
-            Three steps. <em>One</em> payment shown.
-          </>
-        }
-        steps={[
-          {
-            title: "Find the payment",
-            text: "Paste your wallet's viewing key and the transaction ID. Your browser finds the payments you sent or received in it. The key stays on your device.",
-            card: { label: "Step 1", value: "Found" },
-          },
-          {
-            title: "Make the receipt",
-            text: "Pick one payment. Unseal writes a receipt with just the facts that define it, plus the public transaction. Share it as a link or a file.",
-            card: { label: "Step 2", value: "Sealed" },
-          },
-          {
-            title: "Anyone checks it",
-            text: "The recipient of the link opens it. Their browser decrypts that one payment, checks it against the chain, and shows what it proves.",
-            card: { label: "Step 3", value: "Paid" },
-          },
-        ]}
-      />
+        <div className="flow3">
+          <Panel level={3} title="On chain: all sealed">
+            <p>Anyone can see the transaction exists. Nobody can read its outputs.</p>
+            <ul className="mini-ledger" aria-label="Outputs on chain">
+              <li>
+                <span>Output 1</span>
+                <span className="redact" />
+              </li>
+              <li>
+                <span>Output 2</span>
+                <span className="redact" />
+              </li>
+              <li>
+                <span>Sender</span>
+                <span className="redact" />
+              </li>
+            </ul>
+          </Panel>
+          <div className="arrow" aria-hidden="true">
+            →
+          </div>
+          <Panel level={3} title="The receipt: one key">
+            <p>
+              Made in your browser from your viewing key. It holds three facts about one output, and no key at all.
+            </p>
+            <ul className="mini-ledger" aria-label="What a receipt holds">
+              <li>
+                <span>Recipient</span>
+                <span className="lit">u1egp0qx…</span>
+              </li>
+              <li>
+                <span>Amount</span>
+                <span className="lit">0.001 ZEC</span>
+              </li>
+              <li>
+                <span>Seed</span>
+                <span className="lit">32 bytes</span>
+              </li>
+            </ul>
+          </Panel>
+          <div className="arrow" aria-hidden="true">
+            →
+          </div>
+          <Panel level={3} className="glass" title="Checked: one opened">
+            <p>The reader's browser opens that output, matches it to the chain, and nothing else.</p>
+            <ul className="mini-ledger" aria-label="What the reader sees">
+              <li>
+                <span>Output 1</span>
+                <span className="redact" />
+              </li>
+              <li>
+                <span>Output 2</span>
+                <span className="lit">0.001 ZEC · Invoice #1042</span>
+              </li>
+              <li>
+                <span>Sender</span>
+                <span className="redact" />
+              </li>
+            </ul>
+          </Panel>
+        </div>
+      </Reveal>
 
       <Reveal as="section">
         <div className="section-head">
@@ -178,53 +175,6 @@ export function Home() {
   );
 }
 
-/** A receipt, drawn: one payment open, the rest sealed. Purely illustrative. */
-function HeroCard() {
-  const deck = useTilt<HTMLDivElement>();
-  return (
-    <div className="scene">
-      <div className="deck-float">
-        <div className="deck" ref={deck}>
-          <div className="shadow" aria-hidden="true" />
-          <div className="ghost g2" aria-hidden="true" />
-          <div className="ghost g1" aria-hidden="true" />
-          <div className="front">
-            <Panel className="glass" eyebrow="Receipt" title="Invoice #1042" sub="One shielded payment, opened" serial="zr1…">
-              <dl className="rows">
-                <div>
-                  <dt>Amount</dt>
-                  <dd>2.5 ZEC</dd>
-                </div>
-                <div>
-                  <dt>Paid to</dt>
-                  <dd>u1f24h…frayp</dd>
-                </div>
-                <div>
-                  <dt>Sender</dt>
-                  <dd>Sealed</dd>
-                </div>
-                <div>
-                  <dt>Other payments</dt>
-                  <dd>Sealed</dd>
-                </div>
-              </dl>
-              <p className="say">
-                Checked against the chain <em>in your browser</em>.
-              </p>
-              <p className="small muted" style={{ margin: "0.5rem 0 0" }}>
-                An illustration. <a href="#check">Check a real one below</a>.
-              </p>
-            </Panel>
-          </div>
-          <div className="float-stamp">
-            <Stamp value="Paid" label="Verified" delay={1.5} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** A real receipt next to the action that proves it, run in the visitor's own browser. */
 function ClaimAndCheck() {
   return (
@@ -239,7 +189,10 @@ function ClaimAndCheck() {
       <div className="check-grid">
         <div className="panel quiet claim">
           <p className="eyebrow">The claim</p>
-          <p className="claim-score">{SAMPLE.claim.amount} ZEC</p>
+          <p className="claim-score">
+            {SAMPLE.claim.amount}
+            <small>ZEC</small>
+          </p>
           <p className="claim-what">
             was paid to <strong>{SAMPLE.claim.to}</strong> with the note <em>"{SAMPLE.claim.memo}"</em>, in a shielded transaction on
             mainnet.

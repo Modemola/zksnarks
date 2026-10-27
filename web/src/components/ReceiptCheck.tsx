@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { friendlyError } from "../lib/errors";
 import { checkReceipt, freshSteps, memoText, short, type Checked, type Step } from "../lib/receipts";
-import { Panel, Plain, Stamp } from "./ui";
+import { Panel, Plain } from "./ui";
+import { WaxSeal } from "./WaxSeal";
 
 /**
  * The signature moment: one click checks a receipt in the visitor's browser,
@@ -89,24 +90,43 @@ export function ReceiptCheck({
   );
 }
 
-/** The opened payment beside the sealed ones, the stamp, and the facts. */
+/** The seal lands intact, then cracks open: the moment the payment is unsealed. */
+function SealMoment({ others }: { others: number }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setBroken(true), 450);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="unsealed">
+      <WaxSeal broken={broken} size={76} label="Seal broken: payment checked in your browser" />
+      <span className="small muted">
+        Unsealed in your browser: one payment opened{others > 0 ? `, ${others} other${others === 1 ? "" : "s"} in the same transaction still sealed` : ""}.
+      </span>
+    </div>
+  );
+}
+
+/** The opened payment beside the sealed ones, the seal, and the facts. */
 function Outcome({ r }: { r: Checked }) {
   const others = r.actionCount - 1;
   return (
     <>
-      <div className="outputs" aria-hidden="true">
-        {Array.from({ length: r.actionCount }, (_, k) => (
-          <span key={k} className={`out ${k === r.actionIndex ? "open" : "sealed"}`} style={{ "--d": `${(k * 0.08).toFixed(2)}s` } as CSSProperties}>
-            {k === r.actionIndex ? `${r.valueZec} ZEC` : "Sealed"}
-          </span>
-        ))}
+      <div className="ledger" aria-hidden="true">
+        {Array.from({ length: r.actionCount }, (_, k) => {
+          const open = k === r.actionIndex;
+          return (
+            <div key={k} className={open ? "open" : "sealed"} style={{ "--d": `${(k * 0.08).toFixed(2)}s` } as CSSProperties}>
+              <span className="n">Output {k + 1}</span>
+              <span className="what">
+                {open ? `${r.valueZec} ZEC → ${short(r.recipient, 8, 6)}` : <span className="redact" style={{ width: `${48 + ((k * 17) % 30)}%` }} />}
+              </span>
+              <span className="tag">{open ? "Opened" : "Sealed"}</span>
+            </div>
+          );
+        })}
       </div>
-      <div className="vseal">
-        <Stamp value="Paid" label="checked in your browser" delay={0.5} />
-        <span className="small muted">
-          One payment opened{others > 0 ? `; ${others} other${others === 1 ? "" : "s"} in the same transaction stay sealed` : ""}.
-        </span>
-      </div>
+      <SealMoment others={others} />
       <div className="note good" role="status" style={{ margin: "0.9rem 0 0" }}>
         <strong>
           {r.valueZec} ZEC was paid to this address{r.memo.kind === "text" ? `, with the note "${r.memo.text}"` : ""}.
