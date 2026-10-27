@@ -801,7 +801,7 @@ section[id] { scroll-margin-top: calc(var(--hdr-bottom, 80px) + 16px); }
 .stage .stage-orb { position: absolute; left: 50%; top: 50%; width: 240px; height: 240px; margin: -120px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--accent-2) 30%, transparent), transparent 70%); filter: blur(10px); animation: pulse 4s ease-in-out infinite; }
 
 @media print {
-  header.site, footer.site, .aurora, .scroll-progress, .toasts, .note { display: none !important; }
+  header.site, footer.site, .aurora, .scroll-progress, .toasts { display: none !important; }
   body { background: #fff; }
   .route, .reveal { animation: none; opacity: 1; transform: none; }
 }
@@ -1093,4 +1093,29 @@ ol.flow p, .panel p.small, .closing p { overflow-wrap: anywhere; }
     --axis: rgba(236, 232, 222, 0.2); --surface: rgba(236, 232, 222, 0.03); --raised: rgba(236, 232, 222, 0.06); --mark: rgba(236, 232, 222, 0.45);
     --paper-shadow: 5px 5px 0 -1px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.4);
   }
+}
+/* iOS Safari zooms the page when a field's text is under 16px; keep fields at 16px on touch screens. */
+@media (pointer: coarse) {
+  label.field input, label.field textarea, label.field select, textarea.receipt-input { font-size: 16px; }
+}
+
+/* ---------- Print: a verified receipt becomes a clean one-page record ---------- */
+.print-only { display: none; }
+@media print {
+  @page { margin: 14mm; }
+  :root { --void: #fff; --coal: #fff; }
+  body { background: #fff !important; color: #000; font-size: 11pt; }
+  .skip-link, .btn, .copy, .try, details.more, .split > aside, .seg, label.field, .page-head .lede, .net { display: none !important; }
+  .split { display: block; }
+  .panel, .panel.glass { box-shadow: none !important; border: 1px solid #999; break-inside: auto; }
+  .note { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+  .note::before { box-shadow: none; }
+  .ledger, .receipt-facts, .unsealed, .check-steps { break-inside: avoid; }
+  .print-only { display: block; }
+  .print-stamp { margin: 0 0 1rem; padding: 0.6rem 0.8rem; border: 1px solid #999; border-radius: 6px; font: 400 9pt/1.5 var(--mono); }
+  a { color: inherit; text-decoration: none; }
+  .verify-explain { break-before: auto; }
+}
+@media print {
+  .redact, .check-steps .mark, .ledger .open, .slip, .wax-seal { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

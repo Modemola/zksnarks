@@ -9,14 +9,17 @@ import { useToasts } from "../lib/toasts";
 const KEY_RE = /^uview(test)?1[02-9ac-hj-np-z]+$/;
 const TXID_RE = /^[0-9a-fA-F]{64}$/;
 
+/** Keys and IDs never contain whitespace; drop any that copying added (line breaks, spaces). */
+const compact = (s: string) => s.replace(/\s+/g, "");
+
 function problems(key: string, txid: string) {
   const p: { key?: string; txid?: string } = {};
-  const k = key.trim();
+  const k = compact(key);
   if (!k) p.key = "Paste your wallet's unified full viewing key.";
   else if (k.startsWith("uivk")) p.key = "That is an incoming viewing key. Use the full viewing key (uview…), which can also find payments you sent.";
   else if (k.startsWith("zxview") || k.startsWith("zviews")) p.key = "That is a Sapling-only key. Receipts need a unified key (uview…) with an Orchard part.";
   else if (!KEY_RE.test(k)) p.key = "A unified full viewing key starts with uview1 (mainnet) or uviewtest1 (testnet).";
-  const t = txid.trim();
+  const t = compact(txid);
   if (!t) p.txid = "Paste the transaction ID from your wallet's history.";
   else if (!TXID_RE.test(t)) p.txid = `A transaction ID is 64 characters of 0-9 and a-f (${t.length} now).`;
   return p;
@@ -52,7 +55,7 @@ export function CreatePage() {
   const submit = () => {
     setTouched({ key: true, txid: true });
     if (p.key || p.txid) return;
-    void run(key, txid);
+    void run(compact(key), compact(txid));
   };
   /** Fill in the demo shop's view-only key and the demo payment, and look it up. */
   const tryDemo = () => {
@@ -116,6 +119,8 @@ export function CreatePage() {
                   placeholder="uview1…"
                   aria-labelledby="key-label"
                   spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
                   autoComplete="off"
                   aria-invalid={!!shown("key")}
                   aria-describedby="key-help"
@@ -136,6 +141,8 @@ export function CreatePage() {
                   placeholder="64 characters, 0-9 and a-f"
                   aria-labelledby="txid-label"
                   spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
                   autoComplete="off"
                   aria-invalid={!!shown("txid")}
                   aria-describedby="txid-help"

@@ -126,8 +126,13 @@ function SealMoment({ others }: { others: number }) {
 /** The opened payment beside the sealed ones, the seal, and the facts. */
 function Outcome({ r }: { r: Checked }) {
   const others = r.actionCount - 1;
+  const checkedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
   return (
     <>
+      <p className="print-only print-stamp">
+        Unseal receipt check · checked {checkedAt} UTC in a web browser at {typeof location === "undefined" ? "" : location.host} against
+        Zcash {r.network} (chain tip {r.tip.toLocaleString("en-US")}) · transaction {r.txid}
+      </p>
       <div className="ledger" aria-hidden="true">
         {Array.from({ length: r.actionCount }, (_, k) => {
           const open = k === r.actionIndex;

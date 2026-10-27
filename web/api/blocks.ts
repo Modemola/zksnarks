@@ -1,5 +1,5 @@
-import { getBlocks, tipHeight } from "./_lib/lwd";
-import { network, query, send, upstream, type Req, type Res } from "./_lib/http";
+import { getBlocks, tipHeight } from "./_lib/lwd.js";
+import { network, query, send, upstream, type Req, type Res } from "./_lib/http.js";
 
 const MAX_RANGE = 32;
 
