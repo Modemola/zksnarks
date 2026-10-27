@@ -79,14 +79,14 @@ payment reached *you*, compare the address; the check page and `unseal check --a
 
 | Piece | Status |
 |---|---|
-| Receipt library (`core/`): make and check, Orchard and Ironwood | **Working.** `cargo test -p zreceipt` (6 tests: both pools, every kind of tampering, a real NU7 testnet transaction) |
+| Receipt library (`core/`): make and check, Orchard and Ironwood | **Working.** `cargo test -p zreceipt` (10 tests: both pools, every kind of tampering, a real NU7 testnet transaction, and the real mainnet demo receipt and its forged copy) |
 | Browser engine (WebAssembly) | **Working.** Used by every check on the site |
 | Relay (`web/api/`) against mainnet and testnet lightwalletd | **Working** |
 | Check page, make page, CLI | **Working** |
 | The home page's sample receipt | _Pending_: a real mainnet payment made for this demo; added as soon as the test funds confirm |
 | Sapling and transparent payments | _Not supported_ (see Limits) |
 
-Nothing on the site is simulated. The illustration in the home page hero is labelled as one.
+Nothing on the site is simulated. Every check run on it, with results, is in [`docs/AUDIT.md`](docs/AUDIT.md). The receipt drawn in the home page hero is the real demo payment.
 
 ## Limits
 
@@ -127,7 +127,7 @@ Deploy: import the repository in Vercel (Root Directory `web`, or the repository
 | `web/` | The site; `web/api/` is the relay; `web/src/zreceipt/` is the generated WebAssembly |
 | `scripts/build-wasm.sh` | Rebuilds the browser engine |
 | `audit/` | Interface audits (accessibility, 16 screen sizes, outages, speed) |
-| `docs/` | Demo script, submission text, design brief |
+| `docs/` | Quality record (`AUDIT.md`), demo script, submission text |
 
 ## License
 
