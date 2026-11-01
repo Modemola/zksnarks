@@ -110,7 +110,7 @@ def riser(dur, gain=0.12):
     blocks = 40
     for b in range(blocks):
         a, z = b * n // blocks, (b + 1) * n // blocks
-        cut = 300 + 7000 * (b / blocks) ** 2
+        cut = 300 + 4500 * (b / blocks) ** 2
         out[a:z] = lowpass(noise, cut)[a:z]
     tone = np.sin(2 * np.pi * np.cumsum(220 + 660 * k ** 2) / SR) * 0.25
     return gain * (out + tone) * k ** 2.2
@@ -136,11 +136,11 @@ place(drone("D2", 8.0, 0.12), 6.0)
 place(pad(["Bb2", "F3", "D4", "Eb4"], 7.4, 0.11, 1500), 12.8)
 place(drone("Bb1", 7.2, 0.14), 13.0)
 place(impact(0.28, low=False), 15.95)
-place(riser(3.2, 0.10), 16.9)
+place(riser(3.2, 0.06), 16.9)
 
 # 20 to 29 s: a breath of silence, then the crack, and the name in D major.
 place(drone("D2", 3.4, 0.10), 20.2)
-place(riser(2.1, 0.12), 21.05)
+place(riser(2.1, 0.07), 21.05)
 place(impact(0.6), 23.12)
 place(shimmer(["D5", "F#5", "A5", "E6"], 6.0, 0.07), 23.15)
 place(pad(["D3", "A3", "F#4", "E4"], 6.4, 0.10, 1800), 23.1)
@@ -155,9 +155,9 @@ bar = 0
 while t < 47.6:
     for i in range(8):
         note = prog[bar % 4][i % 4]
-        place(pluck(note, 0.8, 0.07 if i % 2 == 0 else 0.05), t + i * beat / 2, pan=(-0.35 if i % 2 else 0.35))
-    place(pad(chords[bar % 4], 4 * beat + 0.6, 0.07, 1300), t - 0.3)
-    place(drone(roots[bar % 4], 4 * beat + 0.4, 0.10), t)
+        place(pluck(note, 0.8, 0.15 if i % 2 == 0 else 0.11), t + i * beat / 2, pan=(-0.35 if i % 2 else 0.35))
+    place(pad(chords[bar % 4], 4 * beat + 0.6, 0.11, 1300), t - 0.3)
+    place(drone(roots[bar % 4], 4 * beat + 0.4, 0.15), t)
     t += 4 * beat
     bar += 1
 
@@ -175,8 +175,8 @@ for at, note, pan in ((56.0, "D5", -0.4), (57.4, "F5", 0.0), (58.8, "A5", 0.4)):
 t, bar = 61.6, 0
 while t < 72.6:
     for i in range(8):
-        place(pluck(prog[bar % 4][i % 4], 0.7, 0.05), t + i * beat / 2, pan=(-0.3 if i % 2 else 0.3))
-    place(pad(chords[bar % 4], 4 * beat + 0.6, 0.06, 1200), t - 0.3)
+        place(pluck(prog[bar % 4][i % 4], 0.7, 0.12), t + i * beat / 2, pan=(-0.3 if i % 2 else 0.3))
+    place(pad(chords[bar % 4], 4 * beat + 0.6, 0.10, 1200), t - 0.3)
     t += 4 * beat
     bar += 1
 

@@ -47,3 +47,17 @@ calm and assured, mixed above the music, with the music ducking under every line
 **Delivery**
 
 1920 × 1080, 30 frames a second, H.264 with AAC, loudness about -16 LUFS, under 80 seconds.
+
+## Making it
+
+The film is [`docs/video/unseal-film.mp4`](../../docs/video/unseal-film.mp4). Every frame is drawn by `film.html` as a
+function of time, so it renders the same on any machine:
+
+```bash
+(cd tools && npm install)                                         # Playwright, three.js
+node tools/video/record.mjs rec                                   # the real site, for the product scene
+python3 tools/video/voice.py voice tools/film/lines.json -8% -2Hz   # the narration, en-NG-AbeoNeural
+node tools/film/render.mjs frames rec                             # 2,400 frames at 1920 × 1080
+python3 tools/film/score.py score.wav                             # the original score (numpy, scipy)
+python3 tools/film/finish.py frames voice score.wav unseal-film.mp4
+```
