@@ -8,6 +8,29 @@ Built for Zecathon, track 04: Core & Tooling. Live on Zcash mainnet:
 **<https://unseall.vercel.app>** · 45 second [launch film](docs/video/unseal-film.mp4) · two minute [demo video](docs/video/unseal-demo.mp4) · five minute walkthrough in
 [docs/JUDGES.md](docs/JUDGES.md).
 
+## How to test
+
+No wallet, no account, no faucet and no install: the demo data is real mainnet payments, and the demo wallet's view only
+key is built into the site.
+
+| Do this on <https://unseall.vercel.app> | You should see |
+|---|---|
+| Press **Check this receipt** | A real 0.001 ZEC mainnet payment checked step by step in your browser, ending in "0.001 ZEC was paid…" |
+| Flip the switch to **Forged copy** | The same receipt with the amount raised to 1 ZEC, rejected at "Match it to the commitment" |
+| **Check a receipt**, then **Try a Sapling receipt** | A second real payment, in the Sapling pool, checked the same way |
+| **Make a receipt**, then **Try it with the demo wallet** | The demo shop's key finds its payment and makes a receipt link, without the key leaving the page |
+
+From a terminal (Rust installed):
+
+```bash
+git clone https://github.com/Modemola/zksnarks && cd zksnarks
+cargo test --workspace                                                    # 14 tests, offline
+cargo run --release -p unseal-cli -- check core/tests/data/mainnet-demo.zr     # checks against mainnet
+cargo run --release -p unseal-cli -- check core/tests/data/mainnet-forged.zr   # rejected
+```
+
+More detail, and how to check each claim, in [docs/JUDGES.md](docs/JUDGES.md).
+
 ---
 
 ## The problem
