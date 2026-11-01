@@ -5,7 +5,7 @@
 **Receipts for shielded Zcash payments. Prove one payment to anyone, and keep everything else private.**
 
 Built for Zecathon, track 04: Core & Tooling. Live on Zcash mainnet:
-**<https://unseall.vercel.app>** · 80 second [launch film](docs/video/unseal-film.mp4) · two minute [demo video](docs/video/unseal-demo.mp4) · five minute walkthrough in
+**<https://unseall.vercel.app>** · 45 second [launch film](docs/video/unseal-film.mp4) · two minute [demo video](docs/video/unseal-demo.mp4) · five minute walkthrough in
 [docs/JUDGES.md](docs/JUDGES.md).
 
 ---
@@ -98,7 +98,7 @@ The full trust model, including what a receipt does not prove, is in [docs/SECUR
 | [`docs/SECURITY.md`](docs/SECURITY.md) | What a receipt proves, what it doesn't, and what the checker trusts |
 | [`docs/QUALITY.md`](docs/QUALITY.md) | Every test and audit, how to rerun it, and the result |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | Hosting the site, running your own relay, rebuilding the engine |
-| [`docs/video/unseal-film.mp4`](docs/video/unseal-film.mp4) | The 80 second launch film ([brief](tools/film/BRIEF.md)) |
+| [`docs/video/unseal-film.mp4`](docs/video/unseal-film.mp4) | The 45 second launch film ([brief](tools/film/BRIEF.md)) |
 | [`docs/video/unseal-demo.mp4`](docs/video/unseal-demo.mp4) | The two minute demo video |
 | [`docs/VIDEO.md`](docs/VIDEO.md) | How the video was made, and its script |
 | [`docs/brand/`](docs/brand) | Logo, cover, mark and the script that renders them |

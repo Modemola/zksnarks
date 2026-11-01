@@ -1,10 +1,11 @@
-"""Writes the launch film's score, synthesized from scratch and timed to the cut.
+"""Writes the launch film's score, synthesized from scratch on the film's beat grid.
 
     python3 tools/film/score.py <out.wav>
 
-D minor. A sub drone and a slow pad carry the story; a soft plucked pulse enters
-with the product; bells mark the three pools; three impacts land on the stamp,
-the crack and the forgery; the end resolves to D major. Needs numpy and scipy.
+124 bpm in D minor. Kick, clap, hats, a pumping bass, offbeat stabs and plucked
+arpeggios; a breakdown before the crack; impacts on the stamp, the tear, the
+crack, the forgery and the end, each on the same beat as the picture
+(tools/film/film.html). Needs numpy and scipy.
 """
 
 import sys
@@ -14,194 +15,224 @@ import numpy as np
 from scipy.signal import butter, fftconvolve, sosfilt
 
 SR = 48000
-LENGTH = 80.0
+LENGTH = 46.0
 N = int(SR * LENGTH)
+BEAT = 60 / 124
 rng = np.random.default_rng(311)
 mix = np.zeros((2, N))
+verb = np.zeros((2, N))  # what goes to the room
+
+
+def at(bar, beat=0.0):
+    return (bar * 4 + beat) * BEAT
 
 
 def hz(note):
-    """Note name such as 'D3' or 'Bb4' to frequency."""
-    names = {"C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11}
-    name, octave = note[:-1], int(note[-1])
-    return 440.0 * 2 ** ((names[name] + 12 * (octave + 1) - 69) / 12)
+    names = {"C": 0, "C#": 1, "Db": 1, "D": 2, "Eb": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "Ab": 8, "A": 9, "Bb": 10, "B": 11}
+    return 440.0 * 2 ** ((names[note[:-1]] + 12 * (int(note[-1]) + 1) - 69) / 12)
 
 
-def place(sig, at, gain=1.0, pan=0.0):
-    """Adds a mono or stereo signal at `at` seconds."""
-    i = int(at * SR)
+def filt(x, kind, cut, order=2):
+    return sosfilt(butter(order, cut, kind, fs=SR, output="sos"), x)
+
+
+def place(sig, t, gain=1.0, pan=0.0, send=0.25):
+    i = int(t * SR)
     if sig.ndim == 1:
         sig = np.vstack([sig * np.sqrt(0.5 * (1 - pan)), sig * np.sqrt(0.5 * (1 + pan))])
     n = min(sig.shape[1], N - i)
-    if n > 0:
+    if n > 0 and i >= 0:
         mix[:, i:i + n] += gain * sig[:, :n]
+        verb[:, i:i + n] += send * gain * sig[:, :n]
 
 
-def env(n, attack, release, hold=None):
-    t = np.arange(n) / SR
-    a = np.clip(t / max(attack, 1e-4), 0, 1)
-    r = np.clip((n / SR - t) / max(release, 1e-4), 0, 1)
-    return np.minimum(a, r) ** 1.5
+def tt(dur):
+    return np.arange(int(dur * SR)) / SR
 
 
-def lowpass(x, cutoff, order=2):
-    return sosfilt(butter(order, cutoff, "low", fs=SR, output="sos"), x)
+# ---------- instruments ----------
+def kick(gain=1.0):
+    t = tt(0.45)
+    f = 52 + 160 * np.exp(-t * 30)
+    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 9)
+    knock = np.sin(2 * np.pi * 2 * np.cumsum(f) / SR) * np.exp(-t * 30) * 0.35
+    click = filt(rng.standard_normal(len(t)), "high", 2500) * np.exp(-t * 150) * 0.45
+    return gain * 0.55 * np.tanh(1.6 * (body + knock + click))
 
 
-def pad(notes, dur, gain=0.11, cutoff=1400):
-    """Detuned saws, softened: a slow, warm chord."""
-    n = int(dur * SR)
-    t = np.arange(n) / SR
-    out = np.zeros((2, n))
-    for k, note in enumerate(notes):
-        f = hz(note)
-        for side, det in ((0, -0.08), (1, 0.08)):
-            for d in (det, -det * 0.5):
-                ph = rng.uniform(0, 1)
-                saw = 2 * ((f * (1 + d / 100) * t + ph) % 1) - 1
-                out[side] += saw / len(notes)
-    out = np.vstack([lowpass(out[0], cutoff, 4), lowpass(out[1], cutoff, 4)])
-    return gain * out * env(n, dur * 0.35, dur * 0.4)
+def clap(gain=1.0):
+    t = tt(0.35)
+    noise = filt(rng.standard_normal(len(t)), "band", [900, 3200])
+    envs = sum(np.exp(-np.clip(t - d, 0, None) * 60) * (t >= d) for d in (0, 0.011, 0.023)) + 0.6 * np.exp(-t * 14)
+    return gain * 0.6 * noise * envs
 
 
-def drone(note, dur, gain=0.18):
-    n = int(dur * SR)
-    t = np.arange(n) / SR
+def hat(gain=1.0, open_=False):
+    t = tt(0.22 if open_ else 0.05)
+    noise = filt(rng.standard_normal(len(t)), "high", 7500)
+    return gain * 0.2 * noise * np.exp(-t * (18 if open_ else 90))
+
+
+def bass(note, dur):
+    t = tt(dur)
     f = hz(note)
-    s = np.sin(2 * np.pi * f * t) + 0.3 * np.sin(2 * np.pi * 2 * f * t) + 0.08 * np.sin(2 * np.pi * 3 * f * t)
-    return gain * s * env(n, 1.5, 2.0)
+    saw = 2 * ((f * t) % 1) - 1 + 0.5 * np.sin(2 * np.pi * f * t)
+    env = np.exp(-t * 5) * 0.7 + 0.3
+    out = filt(saw, "low", 900) * env * np.clip(t / 0.004, 0, 1) * np.clip((dur - t) / 0.02, 0, 1)
+    return 0.2 * out
 
 
-def pluck(note, dur=0.9, gain=0.09):
-    n = int(dur * SR)
-    t = np.arange(n) / SR
+def stab(notes, dur=0.22, gain=1.0):
+    t = tt(dur)
+    s = sum(2 * ((hz(n) * (1 + d) * t) % 1) - 1 for n in notes for d in (-0.004, 0.004))
+    return gain * 0.17 * filt(s, "low", 3200) * np.exp(-t * 10)
+
+
+def pluck(note, gain=1.0):
+    t = tt(0.4)
     f = hz(note)
-    s = sum(np.sin(2 * np.pi * f * h * t) / h ** 1.6 for h in range(1, 6))
-    return gain * lowpass(s * np.exp(-t * 6.0), 3500)
+    s = sum(np.sin(2 * np.pi * f * h * t) / h ** 1.5 for h in range(1, 6))
+    return gain * 0.17 * s * np.exp(-t * 11)
 
 
-def bell(note, dur=4.0, gain=0.16):
-    n = int(dur * SR)
-    t = np.arange(n) / SR
-    f = hz(note)
-    parts = [(1.0, 1.0, 1.2), (2.01, 0.5, 2.0), (2.76, 0.32, 2.8), (5.4, 0.12, 4.5), (8.93, 0.05, 6.0)]
-    s = sum(a * np.sin(2 * np.pi * f * r * t) * np.exp(-t * d) for r, a, d in parts)
-    return gain * s * np.clip(t / 0.004, 0, 1)
+def pad(notes, dur, gain=0.11, cut=2200):
+    t = tt(dur)
+    s = sum(2 * ((hz(n) * (1 + d) * t + rng.uniform()) % 1) - 1 for n in notes for d in (-0.003, 0.003))
+    env = np.minimum(np.clip(t / 0.5, 0, 1), np.clip((dur - t) / 0.8, 0, 1))
+    return gain * filt(s / len(notes), "low", cut, 4) * env
 
 
-def impact(gain=0.55, low=True):
-    dur = 3.5
-    n = int(dur * SR)
-    t = np.arange(n) / SR
-    f = 32 + 70 * np.exp(-t * 7)
-    boom = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 1.6)
-    noise = lowpass(rng.standard_normal(n), 900) * np.exp(-t * 9) * 0.6
-    s = (boom if low else 0) + noise
-    return gain * s * np.clip(t / 0.003, 0, 1)
+def impact(gain=1.0):
+    t = tt(3.0)
+    f = 30 + 90 * np.exp(-t * 6)
+    boom = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 2.4) * 0.7
+    crack = filt(rng.standard_normal(len(t)), "band", [300, 5000]) * np.exp(-t * 10) * 1.1
+    return gain * 0.7 * np.tanh(1.4 * (boom + crack))
 
 
-def riser(dur, gain=0.12):
-    n = int(dur * SR)
-    t = np.arange(n) / SR
+def crash(gain=1.0):
+    t = tt(2.5)
+    return gain * 0.28 * filt(rng.standard_normal(len(t)), "high", 3500) * np.exp(-t * 2.2)
+
+
+def riser(dur, gain=1.0):
+    t = tt(dur)
     k = t / dur
-    noise = rng.standard_normal(n)
-    # A swept band of noise: the cutoff climbs across the riser.
-    out = np.zeros(n)
-    blocks = 40
-    for b in range(blocks):
-        a, z = b * n // blocks, (b + 1) * n // blocks
-        cut = 300 + 4500 * (b / blocks) ** 2
-        out[a:z] = lowpass(noise, cut)[a:z]
-    tone = np.sin(2 * np.pi * np.cumsum(220 + 660 * k ** 2) / SR) * 0.25
-    return gain * (out + tone) * k ** 2.2
+    noise = rng.standard_normal(len(t))
+    out = np.zeros(len(t))
+    for b in range(32):
+        a, z = b * len(t) // 32, (b + 1) * len(t) // 32
+        out[a:z] = filt(noise, "low", 400 + 5000 * (b / 32) ** 2)[a:z]
+    tone = np.sin(2 * np.pi * np.cumsum(180 + 900 * k ** 2) / SR) * 0.3
+    return gain * 0.16 * (out + tone) * k ** 2
 
 
-def shimmer(notes, dur=6.0, gain=0.06):
-    n = int(dur * SR)
-    t = np.arange(n) / SR
-    s = sum(np.sin(2 * np.pi * hz(x) * t) * (1 + 0.3 * np.sin(2 * np.pi * (3 + i) * t)) for i, x in enumerate(notes))
-    return gain * s / len(notes) * env(n, 0.05, dur * 0.8)
+def bell(note, gain=1.0):
+    t = tt(2.5)
+    f = hz(note)
+    s = sum(a * np.sin(2 * np.pi * f * r * t) * np.exp(-t * d) for r, a, d in ((1, 1, 1.6), (2.01, 0.5, 2.6), (2.76, 0.3, 3.5), (5.4, 0.1, 6)))
+    return gain * 0.3 * s
 
 
-# 0 to 6 s: a drone, and the stamp.
-place(drone("D2", 7.0, 0.16), 0.0)
-place(impact(0.5), 1.72)
-place(bell("D5", 5.0, 0.07), 1.75, pan=0.1)
+def tick(gain=1.0):
+    t = tt(0.06)
+    return gain * 0.45 * filt(rng.standard_normal(len(t)), "band", [1800, 6000]) * np.exp(-t * 70)
 
-# 6 to 13 s: the ledger, a chord settling in.
-place(pad(["D3", "A3", "E4", "F4"], 8.0, 0.10, 1100), 5.6)
-place(drone("D2", 8.0, 0.12), 6.0)
 
-# 13 to 20 s: the problem, darker and rising; the key turns at 15.9.
-place(pad(["Bb2", "F3", "D4", "Eb4"], 7.4, 0.11, 1500), 12.8)
-place(drone("Bb1", 7.2, 0.14), 13.0)
-place(impact(0.28, low=False), 15.95)
-place(riser(3.2, 0.06), 16.9)
+# ---------- harmony ----------
+CHORDS = [["D3", "F3", "A3"], ["Bb2", "D3", "F3"], ["F3", "A3", "C4"], ["C3", "E3", "G3"]]
+ROOTS = ["D2", "Bb1", "F2", "C2"]
+ARP = [["D4", "F4", "A4", "D5"], ["Bb3", "D4", "F4", "Bb4"], ["F4", "A4", "C5", "F5"], ["C4", "E4", "G4", "C5"]]
 
-# 20 to 29 s: a breath of silence, then the crack, and the name in D major.
-place(drone("D2", 3.4, 0.10), 20.2)
-place(riser(2.1, 0.07), 21.05)
-place(impact(0.6), 23.12)
-place(shimmer(["D5", "F#5", "A5", "E6"], 6.0, 0.07), 23.15)
-place(pad(["D3", "A3", "F#4", "E4"], 6.4, 0.10, 1800), 23.1)
 
-# 29 to 48 s: the product. A plucked pulse over D minor, B flat, F, C.
-beat = 60 / 100
-prog = [["D4", "A4", "F4", "A4"], ["Bb3", "F4", "D4", "F4"], ["F4", "C5", "A4", "C5"], ["C4", "G4", "E4", "G4"]]
-roots = ["D2", "Bb1", "F2", "C2"]
-chords = [["D3", "A3", "F4"], ["Bb2", "F3", "D4"], ["F3", "C4", "A4"], ["C3", "G3", "E4"]]
-t = 29.4
-bar = 0
-while t < 47.6:
-    for i in range(8):
-        note = prog[bar % 4][i % 4]
-        place(pluck(note, 0.8, 0.15 if i % 2 == 0 else 0.11), t + i * beat / 2, pan=(-0.35 if i % 2 else 0.35))
-    place(pad(chords[bar % 4], 4 * beat + 0.6, 0.11, 1300), t - 0.3)
-    place(drone(roots[bar % 4], 4 * beat + 0.4, 0.15), t)
-    t += 4 * beat
-    bar += 1
+def groove(bar, half=False, arp=False, stabs=True):
+    c = bar % 4
+    for b in range(4):
+        if not half or b in (0, 2):
+            place(kick(), at(bar, b), send=0.05)
+        if (not half and b in (1, 3)) or (half and b == 2):
+            place(clap(), at(bar, b), send=0.35)
+    for s in range(16):
+        place(hat(0.8 if s % 2 else 0.5, open_=(s % 4 == 2)), at(bar, s / 4), pan=0.3 if s % 2 else -0.2, send=0.1)
+    for e in range(8):
+        place(bass(ROOTS[c], BEAT / 2 - 0.01), at(bar, e / 2), send=0.02)
+    if stabs:
+        for b in range(4):
+            place(stab(CHORDS[c]), at(bar, b + 0.5), pan=-0.25 if b % 2 else 0.25, send=0.4)
+    if arp:
+        for s in range(16):
+            place(pluck(ARP[c][s % 4], 0.8), at(bar, s / 4), pan=0.4 if s % 2 else -0.4, send=0.35)
+    place(pad(CHORDS[c], 4 * BEAT + 0.4), at(bar) - 0.1, send=0.5)
 
-# 48 to 55 s: the forgery, one dissonant hit.
-place(drone("D2", 7.0, 0.10), 48.2)
-place(impact(0.45), 50.62)
-place(pad(["D3", "Ab3", "Eb4"], 4.0, 0.08, 900), 50.6)
 
-# 55 to 61.5 s: three pools, three bells.
-place(pad(["D3", "A3", "D4"], 6.6, 0.07, 1200), 55.0)
-for at, note, pan in ((56.0, "D5", -0.4), (57.4, "F5", 0.0), (58.8, "A5", 0.4)):
-    place(bell(note, 4.0, 0.12), at, pan=pan)
+# ---------- the arrangement, bar by bar ----------
+# Bar 0: the words arrive on beats 1, 2 and 3.
+place(riser(at(1), 0.8), 0.0)
+for b in (1, 2, 3):
+    place(tick(1.0), at(0, b), send=0.4)
+place(pad(["D2", "A2"], at(2) + 0.5, 0.08, 600), 0.0)
+# Bar 1: the stamp.
+place(impact(1.0), at(1))
+place(crash(0.8), at(1))
+place(bell("D5", 0.6), at(1), send=0.6)
+# Bars 2 to 5: the ledger and the problem.
+for bar in range(2, 6):
+    groove(bar)
+place(impact(0.7), at(5))
+place(stab(["D3", "Ab3", "Eb4"], 0.5, 2.0), at(5), send=0.5)
+# Bar 6: the breakdown; a roll climbs into the crack.
+place(pad(["D3", "F3", "A3", "E4"], at(1) + 0.4, 0.09, 900), at(6))
+place(riser(at(1), 1.2), at(6))
+for s in range(8, 16):
+    place(clap(0.25 + 0.6 * (s - 8) / 8), at(6, s / 4), send=0.3)
+# Bars 7 and 8: the crack and the name, half time, in D major.
+place(impact(1.1), at(7))
+place(crash(1.0), at(7))
+place(pad(["D3", "F#3", "A3", "E4"], at(2) + 0.6, 0.11, 2200), at(7))
+for bar in (7, 8):
+    groove(bar, half=True, stabs=False)
+# Bars 9 to 12: the product.
+for bar in range(9, 13):
+    groove(bar, arp=True)
+# Bar 13: the amount; bar 14: the forgery lands, and the drums stop.
+groove(13)
+place(riser(at(1) * 0.5, 0.7), at(13, 2))
+place(impact(0.9), at(14))
+place(stab(["D3", "Ab3", "Eb4", "A4"], 0.9, 2.2), at(14), send=0.6)
+place(pad(["D3", "Ab3", "Eb4"], at(1), 0.08, 900), at(14))
+# Bars 15 and 16: three pools, three hits.
+for i, note in enumerate(("D5", "F5", "A5")):
+    place(kick(1.1), at(15, i))
+    place(bell(note, 0.8), at(15, i), pan=(-0.4, 0.0, 0.4)[i], send=0.5)
+place(crash(0.5), at(16))
+groove(16, arp=True)
+# Bars 17 to 20: builders and facts.
+for bar in range(17, 21):
+    groove(bar, arp=bar >= 19)
+for b in (0, 2):
+    place(impact(0.35), at(19, b))
+place(impact(0.35), at(20))
+place(riser(at(1), 0.9), at(20))
+# Bar 21 onward: the name, and a D major ending.
+place(impact(1.1), at(21))
+place(crash(1.0), at(21))
+place(pad(["D3", "F#3", "A3", "D4", "E4"], LENGTH - at(21), 0.12, 2400), at(21))
+place(bell("A5", 0.5), at(21), send=0.7)
+place(bell("D6", 0.35), at(22), send=0.7)
 
-# 61.5 to 73 s: builders and facts, the pulse again, lighter.
-t, bar = 61.6, 0
-while t < 72.6:
-    for i in range(8):
-        place(pluck(prog[bar % 4][i % 4], 0.7, 0.12), t + i * beat / 2, pan=(-0.3 if i % 2 else 0.3))
-    place(pad(chords[bar % 4], 4 * beat + 0.6, 0.10, 1200), t - 0.3)
-    t += 4 * beat
-    bar += 1
-
-# 73 to 80 s: resolve to D major.
-place(pad(["D3", "A3", "F#4", "E5"], 7.0, 0.12, 2000), 72.9)
-place(drone("D2", 7.0, 0.14), 73.0)
-place(bell("A5", 6.0, 0.09), 73.8, pan=0.2)
-place(shimmer(["D6", "F#6", "A6"], 6.0, 0.04), 74.2)
-
-# A room: a short stereo tail from decaying noise.
-ir_len = int(2.6 * SR)
-tt = np.arange(ir_len) / SR
-ir = np.vstack([rng.standard_normal(ir_len), rng.standard_normal(ir_len)]) * np.exp(-tt * 2.4)
-ir = np.vstack([lowpass(ir[0], 5000), lowpass(ir[1], 5000)])
-ir /= np.abs(ir).sum(axis=1, keepdims=True) ** 0.5 * 30
-wet = np.vstack([fftconvolve(mix[0], ir[0])[:N], fftconvolve(mix[1], ir[1])[:N]])
-out = 0.78 * mix + 0.5 * wet
-fade = np.clip((LENGTH - np.arange(N) / SR) / 1.2, 0, 1)
-out *= fade
+# ---------- the room, then the master ----------
+ir_t = tt(1.8)
+ir = np.vstack([rng.standard_normal(len(ir_t)), rng.standard_normal(len(ir_t))]) * np.exp(-ir_t * 3.2)
+ir = np.vstack([filt(ir[0], "low", 6000), filt(ir[1], "low", 6000)])
+ir /= np.sqrt((ir ** 2).sum(axis=1, keepdims=True)) * 3
+out = mix + np.vstack([fftconvolve(verb[0], ir[0])[:N], fftconvolve(verb[1], ir[1])[:N]])
+out = filt(out, "high", 28)
+out = np.tanh(1.3 * out / np.abs(out).max() * 1.6) / np.tanh(1.3 * 1.6)  # a gentle limiter
+out *= np.clip((LENGTH - np.arange(N) / SR) / 1.5, 0, 1)
 out /= np.abs(out).max() / 0.89
-
-pcm = (out.T * 32767).astype("<i2")
 with wave.open(sys.argv[1], "wb") as w:
     w.setnchannels(2)
     w.setsampwidth(2)
     w.setframerate(SR)
-    w.writeframes(pcm.tobytes())
+    w.writeframes((out.T * 32767).astype("<i2").tobytes())
 print(f"wrote {sys.argv[1]}: {LENGTH:.0f} s")

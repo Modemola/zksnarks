@@ -11,7 +11,7 @@ import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launch } from "../browser.mjs";
 
-const [out, footage, from = "0", to = "80", step = "1"] = process.argv.slice(2);
+const [out, footage, from = "0", to = "46", step = "1"] = process.argv.slice(2);
 if (!out || !footage) throw new Error("usage: render.mjs <frames-dir> <footage-dir> [from] [to] [step]");
 const here = dirname(fileURLToPath(import.meta.url));
 const pkg = (name) => join(here, "../node_modules", name);
