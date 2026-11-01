@@ -1,0 +1,485 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Unseal film</title>
+<script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/", "polygon-clipping": "/polygon-clipping/dist/polygon-clipping.esm.js", "splaytree": "/splaytree/dist/splaytree.js", "robust-predicates": "/robust-predicates/index.js" } }</script>
+<style>
+@font-face { font-family: Display; src: url(/fonts/instrument-serif/files/instrument-serif-latin-400-normal.woff2); }
+@font-face { font-family: Display; font-style: italic; src: url(/fonts/instrument-serif/files/instrument-serif-latin-400-italic.woff2); }
+@font-face { font-family: Text; src: url(/fonts/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2); }
+@font-face { font-family: Text; font-weight: 600; src: url(/fonts/ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff2); }
+@font-face { font-family: Code; src: url(/fonts/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2); }
+@font-face { font-family: Code; font-weight: 500; src: url(/fonts/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2); }
+:root { --ink: #0d0f13; --paper: #f4f1e9; --gold: #f4b728; --deep: #8a5a00; --red: #e2574c; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--ink); }
+body { position: relative; color: var(--paper); font-family: Text; }
+.layer { position: absolute; inset: 0; }
+#glow { background: radial-gradient(var(--gw, 900px) var(--gh, 620px) at var(--gx, 50%) var(--gy, 46%), rgba(var(--gc, 244, 183, 40), var(--ga, 0.18)), transparent 70%); }
+#shaft { left: 50%; top: 8%; width: 6px; height: 84%; margin-left: -3px; background: linear-gradient(transparent, #ffe6a0 30%, #fff6d8 50%, #ffe6a0 70%, transparent); filter: blur(10px); opacity: 0; }
+#gl { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+#vignette { background: radial-gradient(1400px 900px at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55)); pointer-events: none; }
+#grain { opacity: 0.05; mix-blend-mode: overlay; background-size: 256px 256px; }
+.statement { position: absolute; left: 0; right: 0; text-align: center; font: 400 84px/1.08 Display; letter-spacing: -0.01em; color: var(--paper); }
+.statement .w { display: inline-block; white-space: pre; will-change: transform, opacity, filter; }
+.statement em { color: var(--gold); }
+.label { font: 500 20px Code; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(244, 241, 233, 0.62); }
+
+/* The ledger of sealed receipts */
+#ledger { perspective: 1700px; perspective-origin: 50% 30%; }
+#plane { position: absolute; left: 50%; top: 50%; width: 2300px; height: 1500px; margin: -750px 0 0 -1150px; transform-style: preserve-3d;
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 34px; padding: 40px; }
+.card { background: var(--paper); color: #15171c; border-radius: 6px; padding: 18px 20px; font: 15px Code; position: relative; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45); }
+.card .row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px dotted rgba(21, 23, 28, 0.25); color: #5a5f6a; }
+.card .row b { font-weight: 500; color: #15171c; position: relative; }
+.card .bar { position: absolute; right: 0; top: 50%; height: 12px; margin-top: -6px; background: #15171c; border-radius: 2px; }
+.card .stamp { position: absolute; right: 14px; bottom: -18px; width: 46px; }
+.card.open { box-shadow: 0 0 0 2px rgba(226, 87, 76, 0.9), 0 20px 40px rgba(0, 0, 0, 0.45); }
+#scrim { background: linear-gradient(#0d0f13 0, rgba(13,15,19,.92) 300px, rgba(13,15,19,0) 470px, rgba(13,15,19,0) 690px, rgba(13,15,19,.9) 820px, #0d0f13 1080px); }
+#plane .card { filter: brightness(.86); }
+#key { position: absolute; left: 50%; top: 50%; width: 560px; margin: -146px 0 0 -280px; filter: drop-shadow(0 0 24px rgba(244, 183, 40, 0.7)); }
+
+/* Unseal title */
+#title { position: absolute; left: 0; right: 0; top: 590px; text-align: center; font: 400 190px/1 Display; letter-spacing: -0.02em; color: var(--paper); }
+#tagline { position: absolute; left: 0; right: 0; top: 830px; text-align: center; font: 400 56px Display; color: rgba(244, 241, 233, 0.86); }
+#tagline em { color: var(--gold); }
+
+/* The product in a floating browser */
+#stage { perspective: 2200px; }
+#browser { position: absolute; left: 640px; top: 150px; width: 1180px; height: 760px; border-radius: 14px; overflow: hidden; background: #f4f1e9;
+  box-shadow: 0 60px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08); transform-origin: 30% 50%; }
+#browser .bar { height: 44px; background: #e9e5da; display: flex; align-items: center; gap: 9px; padding: 0 18px; }
+#browser .bar i { width: 12px; height: 12px; border-radius: 50%; background: #c9c3b4; }
+#browser .bar span { margin-left: 22px; flex: 1; max-width: 520px; height: 26px; border-radius: 13px; background: #f8f6f0; font: 14px Code; color: #5a5f6a; display: flex; align-items: center; padding: 0 14px; gap: 8px; }
+#browser img { display: block; width: 1180px; height: 716px; object-fit: cover; object-position: top center; }
+#callouts { position: absolute; left: 110px; top: 250px; width: 470px; }
+.call { padding: 22px 0 22px 26px; border-left: 2px solid rgba(244, 183, 40, 0.25); position: relative; }
+.call .k { font: 500 17px Code; letter-spacing: 0.28em; color: var(--gold); }
+.call .v { font: 400 38px/1.15 Display; color: var(--paper); margin-top: 6px; }
+.call .dot { position: absolute; left: -7px; top: 30px; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 18px var(--gold); }
+#s5head { position: absolute; left: 110px; top: 140px; }
+
+/* Forgery */
+#amount { position: absolute; left: 0; right: 0; top: 330px; text-align: center; font: 400 300px/1 Display; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+#amount small { font: 500 60px Code; letter-spacing: 0.1em; color: var(--gold); margin-left: 26px; vertical-align: 40px; }
+#strike { position: absolute; left: 470px; top: 470px; height: 10px; width: 980px; background: var(--red); transform-origin: left center; box-shadow: 0 0 30px rgba(226, 87, 76, 0.6); }
+#rejected { position: absolute; left: 0; right: 0; top: 700px; text-align: center; font: 500 30px Code; letter-spacing: 0.5em; color: var(--red); }
+#rejected2 { position: absolute; left: 0; right: 0; top: 770px; text-align: center; font: 400 44px Display; color: rgba(244, 241, 233, 0.85); }
+
+/* Pools */
+.pool { position: absolute; top: 735px; width: 400px; margin-left: -200px; text-align: center; }
+.pool .label { color: var(--gold); font-size: 24px; }
+
+/* Code */
+#code { position: absolute; left: 330px; top: 250px; width: 1260px; border-radius: 16px; background: #15171c; box-shadow: 0 50px 100px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06); overflow: hidden; }
+#code .bar { height: 46px; background: #1d2028; display: flex; align-items: center; gap: 9px; padding: 0 20px; }
+#code .bar i { width: 12px; height: 12px; border-radius: 50%; background: #3a3e48; }
+#code pre { padding: 34px 40px 40px; font: 28px/1.75 Code; color: #e9e6dd; min-height: 430px; white-space: pre; }
+#code .c { color: #7d8392; } #code .p { color: var(--gold); } #code .s { color: #9fd7a8; }
+#code .caret { display: inline-block; width: 14px; height: 30px; background: var(--gold); vertical-align: -5px; }
+#chips { position: absolute; left: 0; right: 0; top: 850px; display: flex; justify-content: center; gap: 26px; }
+.chip { font: 500 20px Code; letter-spacing: 0.3em; padding: 14px 26px; border: 1px solid rgba(244, 183, 40, 0.5); border-radius: 999px; color: var(--gold); }
+
+/* Facts */
+.fact { position: absolute; top: 330px; width: 520px; margin-left: -260px; text-align: center; }
+.fact .n { font: 400 260px/1 Display; color: var(--paper); font-variant-numeric: tabular-nums; }
+.fact .label { margin-top: 26px; font-size: 22px; line-height: 1.6; }
+
+/* End */
+#endname { position: absolute; left: 0; right: 0; top: 560px; text-align: center; font: 400 150px/1 Display; color: var(--paper); }
+#endline { position: absolute; left: 0; right: 0; top: 730px; text-align: center; font: 400 48px Display; color: rgba(244, 241, 233, 0.82); }
+#endline em { color: var(--gold); }
+#endurl { position: absolute; left: 0; right: 0; top: 840px; text-align: center; font: 500 28px Code; letter-spacing: 0.14em; color: var(--gold); }
+#endtrack { position: absolute; left: 0; right: 0; top: 900px; text-align: center; }
+#black { background: #000; opacity: 0; }
+</style>
+</head>
+<body>
+<div class="layer" id="glow"></div>
+<div class="layer" id="shaft"></div>
+
+<div class="layer" id="ledger"><div id="plane"></div></div>
+<div class="layer" id="scrim"></div>
+<svg id="key" viewBox="0 0 420 220" fill="none" stroke="#f4b728" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="80" cy="110" r="58"/><circle cx="80" cy="110" r="22"/>
+  <path d="M138 110 H392"/><path d="M330 110 V156 M362 110 V146 M392 110 V160"/>
+</svg>
+
+<canvas id="gl" width="1920" height="1080"></canvas>
+
+<div class="statement" id="st1" style="top:800px">Every shielded payment is <em>sealed.</em></div>
+<div class="statement" id="st2" style="top:880px">Private by default.</div>
+<div class="statement" id="st3a" style="top:80px">To prove one payment today,</div>
+<div class="statement" id="st3b" style="top:172px">a viewing key opens <em style="color:#e2574c">everything.</em></div>
+<div id="title">Unseal</div>
+<div id="tagline">Prove one payment. Keep the rest <em>sealed.</em></div>
+
+<div class="layer" id="stage">
+  <div id="s5head"><div class="label">Checked in the browser · Zcash mainnet</div></div>
+  <div id="callouts">
+    <div class="call"><span class="dot"></span><div class="k">TRANSACTION</div><div class="v">Rebuilt from its own bytes</div></div>
+    <div class="call"><span class="dot"></span><div class="k">ONE PAYMENT</div><div class="v">Opened. The rest stay sealed</div></div>
+    <div class="call"><span class="dot"></span><div class="k">COMMITMENT</div><div class="v">Matched to the chain</div></div>
+    <div class="call"><span class="dot"></span><div class="k">BLOCK 3,531,890</div><div class="v">Found. 0.001 ZEC, paid</div></div>
+  </div>
+  <div id="browser"><div class="bar"><i></i><i></i><i></i><span>🔒 unseall.vercel.app/check</span></div><img id="footage" alt=""></div>
+</div>
+
+<div id="amount"><span id="digits">0.001</span><small>ZEC</small></div>
+<div id="strike"></div>
+<div id="rejected">REJECTED</div>
+<div id="rejected2">One detail changed. The check fails at the step that broke.</div>
+
+<div class="pool" id="p0" style="left:431px"><div class="label">Orchard</div></div>
+<div class="pool" id="p1" style="left:960px"><div class="label">Ironwood</div></div>
+<div class="pool" id="p2" style="left:1489px"><div class="label">Sapling</div></div>
+<div class="statement" id="st7" style="top:150px">Every shielded pool.</div>
+
+<div id="code"><div class="bar"><i></i><i></i><i></i></div><pre id="codepre"></pre></div>
+<div id="chips"><div class="chip">RUST LIBRARY</div><div class="chip">WEBASSEMBLY</div><div class="chip">COMMAND LINE</div></div>
+
+<div class="fact" id="f0" style="left:460px"><div class="n">1</div><div class="label">payment<br>shown</div></div>
+<div class="fact" id="f1" style="left:960px"><div class="n">0</div><div class="label">keys<br>shared</div></div>
+<div class="fact" id="f2" style="left:1460px"><div class="n">16</div><div class="label">blocks seen<br>by the server</div></div>
+
+<div id="endname">Unseal</div>
+<div id="endline">Prove one payment. Keep the rest <em>sealed.</em></div>
+<div id="endurl">unseall.vercel.app</div>
+<div id="endtrack" class="label">Live on Zcash mainnet · Zecathon · Core &amp; Tooling</div>
+
+<div class="layer" id="vignette"></div>
+<div class="layer" id="grain"></div>
+<div class="layer" id="black"></div>
+
+<script type="module">
+import * as THREE from "three";
+import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import pc from "polygon-clipping";
+
+// ---------- time helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2);
+const out = (k) => 1 - (1 - k) ** 3;
+const inq = (k) => k * k * k;
+const lerp = (a, b, k) => a + (b - a) * k;
+/** 0 → 1 over [a, a+fi], 1 → 0 over [b-fo, b]. */
+const life = (t, a, b, fi = 0.6, fo = 0.6) => Math.min(out(prog(t, a, a + fi)), 1 - ease(prog(t, b - fo, b)));
+const $ = (id) => document.getElementById(id);
+const show = (el, o, extra = "") => { el.style.opacity = o.toFixed(3); el.style.visibility = o < 0.002 ? "hidden" : "visible"; if (extra) el.style.transform = extra; };
+let seed = 7;
+const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+// ---------- statements: words enter one by one ----------
+function words(el) {
+  const html = el.innerHTML;
+  const tmp = document.createElement("div"); tmp.innerHTML = html;
+  el.innerHTML = "";
+  const list = [];
+  for (const node of tmp.childNodes) {
+    const isEm = node.nodeType === 1;
+    const parts = (node.textContent).split(/(\s+)/).filter((s) => s.length);
+    for (const p of parts) {
+      if (/^\s+$/.test(p)) { el.append(" "); continue; }
+      const s = document.createElement("span"); s.className = "w"; s.textContent = p;
+      if (isEm) { const em = document.createElement("em"); em.style.cssText = node.getAttribute("style") || ""; em.append(s); el.append(em); } else el.append(s);
+      list.push(s);
+    }
+  }
+  return list;
+}
+const statements = {};
+for (const id of ["st1", "st2", "st3a", "st3b", "st7"]) statements[id] = words($(id));
+function statement(id, t, a, b, step = 0.09) {
+  const el = $(id), ws = statements[id];
+  const leave = 1 - ease(prog(t, b - 0.7, b));
+  el.style.visibility = t < a - 0.1 || t > b + 0.1 ? "hidden" : "visible";
+  ws.forEach((w, i) => {
+    const k = out(prog(t, a + i * step, a + i * step + 0.75));
+    w.style.opacity = (k * leave).toFixed(3);
+    w.style.transform = `translateY(${(1 - k) * 34}px)`;
+    w.style.filter = `blur(${((1 - k) * 10 + (1 - leave) * 6).toFixed(2)}px)`;
+  });
+}
+
+// ---------- grain ----------
+const g = document.createElement("canvas"); g.width = g.height = 256;
+const gx = g.getContext("2d"), gi = gx.createImageData(256, 256);
+for (let i = 0; i < gi.data.length; i += 4) { const v = rand() * 255; gi.data[i] = gi.data[i + 1] = gi.data[i + 2] = v; gi.data[i + 3] = 255; }
+gx.putImageData(gi, 0, 0);
+$("grain").style.backgroundImage = `url(${g.toDataURL()})`;
+
+// ---------- the ledger ----------
+const SEAL_SVG = `<svg viewBox="-4 -4 108 108"><defs><radialGradient id="wx" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#ffe08a"/><stop offset=".45" stop-color="#f4b728"/><stop offset="1" stop-color="#b77c06"/></radialGradient></defs><path d="M50 3c6 0 8 4 13 5s10-1 13 3 1 9 4 13 8 6 8 11-4 8-4 13 4 9 2 13-7 5-9 9-1 10-5 12-9-1-13 1-6 7-12 7-8-5-13-6-10 2-13-2-1-9-4-13-8-5-9-10 3-8 3-13-5-9-2-13 7-5 9-9 1-10 5-12 9 1 13-1 6-7 12-7z" fill="url(#wx)" stroke="#7a4f00" stroke-width="2"/><circle cx="50" cy="43" r="8" fill="#5c3d00"/><path d="M45.5 48l-3 15h15l-3-15z" fill="#5c3d00"/></svg>`;
+const amounts = ["4.20", "0.75", "12.00", "0.031", "250.00", "1.5", "0.0042", "38.10", "7.77", "0.19", "64.00", "2.25"];
+const memos = ["Rent, March", "Invoice 0381", "Payroll", "Salary", "Supplier", "Refund", "Consulting", "Donation", "Tuition", "Gift", "Hosting", "Deposit"];
+const cards = [];
+for (let i = 0; i < 40; i++) {
+  const c = document.createElement("div"); c.className = "card";
+  const a = amounts[i % amounts.length], m = memos[(i * 5) % memos.length];
+  c.innerHTML = `<div class="row">AMOUNT <b>${a} ZEC<span class="bar" style="width:${70 + (i * 13) % 50}px"></span></b></div>
+    <div class="row">TO <b>u1${"q7x9k3m2v8p".slice(i % 5, i % 5 + 5)}…<span class="bar" style="width:${90 + (i * 7) % 40}px"></span></b></div>
+    <div class="row">MEMO <b>${m}<span class="bar" style="width:${80 + (i * 11) % 60}px"></span></b></div>
+    <div class="stamp">${SEAL_SVG}</div>`;
+  $("plane").append(c);
+  const col = i % 8, row = Math.floor(i / 8);
+  cards.push({ el: c, bars: [...c.querySelectorAll(".bar")], stamp: c.querySelector(".stamp"), d: Math.hypot(col - 3.5, row - 2) });
+}
+
+// ---------- the 3D seal ----------
+const renderer = new THREE.WebGLRenderer({ canvas: $("gl"), antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(1920, 1080, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.18;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(30, 1920 / 1080, 1, 5000);
+camera.position.set(0, 0, 640);
+const key = new THREE.DirectionalLight(0xffe2b0, 2.4); key.position.set(-300, 400, 500); scene.add(key);
+const rim = new THREE.DirectionalLight(0xffc96b, 1.6); rim.position.set(400, -200, -300); scene.add(rim);
+const fill = new THREE.AmbientLight(0x404050, 0.4); scene.add(fill);
+const front = new THREE.DirectionalLight(0xfff0d0, 1.4); front.position.set(80, 120, 700); scene.add(front);
+
+const OUTLINE = "M50 3c6 0 8 4 13 5s10-1 13 3 1 9 4 13 8 6 8 11-4 8-4 13 4 9 2 13-7 5-9 9-1 10-5 12-9-1-13 1-6 7-12 7-8-5-13-6-10 2-13-2-1-9-4-13-8-5-9-10 3-8 3-13-5-9-2-13 7-5 9-9 1-10 5-12 9 1 13-1 6-7 12-7z";
+const svg = new SVGLoader().parse(`<svg xmlns="http://www.w3.org/2000/svg"><path d="${OUTLINE}"/></svg>`);
+// Points along the outline, without the repeated start point that would leave a spike.
+const outlinePts = svg.paths[0].toShapes(true)[0].getPoints(24).map((p) => [p.x, p.y])
+  .filter((p, i, a) => i === 0 || Math.hypot(p[0] - a[i - 1][0], p[1] - a[i - 1][1]) > 0.05);
+if (Math.hypot(outlinePts[0][0] - outlinePts.at(-1)[0], outlinePts[0][1] - outlinePts.at(-1)[1]) < 0.05) outlinePts.pop();
+const circle = (cx, cy, r, n = 72) => [Array.from({ length: n }, (_, i) => [cx + r * Math.cos((i / n) * 2 * Math.PI), cy + r * Math.sin((i / n) * 2 * Math.PI)])];
+// The site's crack line, with its ends moved off the outline's start point so no sliver is left.
+const crack = [[52.5, -10], [52.5, 6], [46, 18], [54, 30], [45, 44], [55, 56], [47, 70], [53, 84], [52.5, 94], [52.5, 110]];
+const leftRegion = [[[-20, -10], ...crack, [-20, 110]]];
+const rightRegion = [[[120, -10], ...crack, [120, 110]]];
+const body = [outlinePts];
+const ring = pc.difference(circle(50, 50, 28.4), circle(50, 50, 25.6));
+const keyhole = pc.union(circle(50, 43, 8), [[[45.5, 46], [42.5, 63], [57.5, 63], [54.5, 46]]]);
+function shapes(multi) {
+  return multi.map((poly) => {
+    const conv = (ring) => ring.slice(0, -1).map(([x, y]) => new THREE.Vector2(x - 50, 50 - y));
+    const s = new THREE.Shape(conv(poly[0]));
+    for (const h of poly.slice(1)) s.holes.push(new THREE.Path(conv(h)));
+    return s;
+  });
+}
+const geo = {};
+for (const [side, region] of [["L", leftRegion], ["R", rightRegion]]) {
+  geo["body" + side] = new THREE.ExtrudeGeometry(shapes(pc.intersection(body, region)), { depth: 8, bevelEnabled: true, bevelThickness: 2.6, bevelSize: 2.2, bevelSegments: 6, curveSegments: 6 });
+  geo["ring" + side] = new THREE.ExtrudeGeometry(shapes(pc.intersection(ring, region)), { depth: 0.8, bevelEnabled: true, bevelThickness: 0.7, bevelSize: 0.5, bevelSegments: 3 });
+  geo["key" + side] = new THREE.ExtrudeGeometry(shapes(pc.intersection(keyhole, region)), { depth: 0.5, bevelEnabled: false });
+}
+// Whole seals, for the scenes where nothing cracks.
+geo.bodyW = new THREE.ExtrudeGeometry(shapes([body]), { depth: 8, bevelEnabled: true, bevelThickness: 2.6, bevelSize: 2.2, bevelSegments: 6, curveSegments: 6 });
+geo.ringW = new THREE.ExtrudeGeometry(shapes(ring), { depth: 0.8, bevelEnabled: true, bevelThickness: 0.7, bevelSize: 0.5, bevelSegments: 3 });
+geo.keyW = new THREE.ExtrudeGeometry(shapes(keyhole), { depth: 0.5, bevelEnabled: false });
+function makeSeal(whole = false) {
+  const gold = new THREE.MeshPhysicalMaterial({ color: 0xf7c04a, metalness: 0.72, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.2, envMapIntensity: 2.2, transparent: true });
+  const goldHi = gold.clone(); goldHi.roughness = 0.22;
+  const dark = new THREE.MeshStandardMaterial({ color: 0x3e2700, roughness: 0.7, metalness: 0.2, transparent: true });
+  const seal = new THREE.Group(), halves = {};
+  for (const side of whole ? ["W"] : ["L", "R"]) {
+    const h = new THREE.Group();
+    const b = new THREE.Mesh(geo["body" + side], gold); b.position.z = -5.3;
+    const r = new THREE.Mesh(geo["ring" + side], goldHi); r.position.z = 5.2;
+    const k = new THREE.Mesh(geo["key" + side], dark); k.position.z = 5.9;
+    h.add(b, r, k); seal.add(h); halves[side] = h;
+  }
+  seal.scale.setScalar(1.7);
+  scene.add(seal);
+  return { seal, halves, mats: [gold, goldHi, dark] };
+}
+const S = makeSeal();
+const pools = [makeSeal(true), makeSeal(true), makeSeal(true)];
+const endSeal = makeSeal(true);
+function seal(inst, { x = 0, y = 0, z = 0, s = 1.7, rx = 0, ry = 0, rz = 0, a = 1, split = 0, glow = 0 }) {
+  inst.seal.visible = a > 0.002;
+  inst.seal.position.set(x, y, z); inst.seal.scale.setScalar(s); inst.seal.rotation.set(rx, ry, rz);
+  inst.mats.forEach((m) => { m.opacity = a; m.depthWrite = a > 0.99; });
+  inst.mats[0].emissive.setRGB(0.55 * glow, 0.32 * glow, 0.04 * glow);
+  inst.mats[1].emissive.setRGB(0.6 * glow, 0.36 * glow, 0.05 * glow);
+  if (!inst.halves.L) return;
+  inst.halves.L.position.set(-split * 34, 0, split * 10); inst.halves.L.rotation.set(0, -split * 0.55, -split * 0.12);
+  inst.halves.R.position.set(split * 34, 0, split * 10); inst.halves.R.rotation.set(0, split * 0.55, split * 0.12);
+}
+
+// ---------- footage ----------
+const params = new URLSearchParams(location.search);
+let footage = { frames: [], start: 0 };
+async function loadFootage() {
+  const r = await fetch("/footage/03-check/frames.json"); footage = await r.json();
+  footage.t0 = footage.frames[0].t;
+}
+function footageAt(sec) {
+  const at = footage.t0 + clamp(sec, 0, footage.end - footage.t0 - 0.05);
+  let lo = 0, hi = footage.frames.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (footage.frames[mid].t <= at) lo = mid; else hi = mid - 1; }
+  return "/footage/03-check/" + footage.frames[lo].file;
+}
+
+// ---------- code typing ----------
+const CODE = [
+  ["c", "// in your wallet or shop"],
+  ["", "let proven = zreceipt::verify(&receipt)?;"],
+  ["", ""],
+  ["c", "// or from a terminal"],
+  ["p", "$ unseal check receipt.txt --json"],
+  ["s", '{"ok":true,"pool":"Ironwood","valueZec":"0.001",…}'],
+];
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function typed(t, a, cps = 64) {
+  let budget = Math.max(0, (t - a) * cps), html = "", done = true;
+  for (const [cls, line] of CODE) {
+    const n = Math.min(line.length, Math.floor(budget));
+    budget -= line.length + 6;
+    html += (cls ? `<span class="${cls}">` : "") + esc(line.slice(0, n)) + (cls ? "</span>" : "");
+    if (n < line.length) { done = false; html += '<span class="caret"></span>'; break; }
+    html += "\n";
+  }
+  if (done) html += '<span class="caret"></span>';
+  return html;
+}
+
+// ---------- the timeline ----------
+const T = { end: 80 };
+window.render = async function (t) {
+  // Background light: where it sits and its colour follow the story.
+  let ga = 0.16, gc = "244, 183, 40", gxp = 50, gyp = 46, gw = 900;
+  if (t < 6) ga = 0.04 + 0.2 * out(prog(t, 1.5, 2.2)) * (1 - 0.4 * prog(t, 2.2, 6));
+  else if (t < 13) ga = 0.14;
+  else if (t < 20.2) { const r = ease(prog(t, 15.6, 16.6)); gc = `${Math.round(lerp(244, 226, r))}, ${Math.round(lerp(183, 87, r))}, ${Math.round(lerp(40, 76, r))}`; ga = 0.14 + 0.12 * r; ga *= 1 - prog(t, 19.6, 20.2); }
+  else if (t < 29) { ga = 0.05 + 0.32 * out(prog(t, 23.0, 23.5)) * (1 - 0.5 * prog(t, 23.5, 28.5)); gw = 700; ga *= 1 - prog(t, 28.4, 29.2); }
+  else if (t < 48) { gxp = 62; gyp = 50; gw = 1400; ga = 0.12 * life(t, 29, 48, 1, 0.8); }
+  else if (t < 55) { const r = prog(t, 50.5, 50.8); gc = r > 0 ? "226, 87, 76" : gc; ga = 0.1 + 0.12 * r; ga *= life(t, 48, 55); }
+  else if (t < 61.5) ga = 0.16 * life(t, 55, 61.5);
+  else if (t < 67.5) ga = 0.1 * life(t, 61.5, 67.5);
+  else if (t < 73) ga = 0.1 * life(t, 67.5, 73);
+  else ga = 0.2 * life(t, 73, 80, 1, 1.2);
+  const glow = $("glow").style;
+  glow.setProperty("--ga", ga.toFixed(3)); glow.setProperty("--gc", gc); glow.setProperty("--gx", gxp + "%"); glow.setProperty("--gy", gyp + "%"); glow.setProperty("--gw", gw + "px");
+  $("grain").style.backgroundPosition = `${(t * 997) % 256}px ${(t * 613) % 256}px`;
+
+  // 1. Sealed: the seal drops and stamps.
+  const drop = prog(t, 0.3, 1.7);
+  const s1 = { z: lerp(520, 0, inq(drop)), a: out(prog(t, 0.2, 0.9)), rx: lerp(-0.9, 0.12, out(drop)), ry: 0.25 * Math.sin(t * 0.6) * prog(t, 1.7, 3), y: 22, s: 1.7 };
+  const thump = Math.exp(-((t - 1.75) ** 2) / 0.004);
+  s1.s *= 1 - 0.04 * thump;
+  // 2. ... then recedes into the ledger.
+  const back = ease(prog(t, 6.0, 8.2));
+  if (t < 6) seal(S, s1);
+  else if (t < 8.4) seal(S, { ...s1, z: lerp(0, -1400, back), y: lerp(40, 120, back), a: 1 - prog(t, 7.4, 8.3), rx: lerp(0.12, 0.9, back) });
+  // 4. Unseal: the seal returns, and cracks.
+  else if (t >= 20.0 && t < 29.2) {
+    const ret = out(prog(t, 20.2, 22.2)), split = out(prog(t, 23.1, 24.4));
+    seal(S, { z: lerp(-300, 40, ret) + 30 * prog(t, 22.2, 28), y: 66, a: ret * (1 - prog(t, 28.3, 29.1)), rx: lerp(0.4, 0.05, ret), ry: 0.12 * Math.sin(t * 0.7), split: split * (1 + 0.25 * prog(t, 24.4, 29)), glow: 0.5 * out(prog(t, 23.0, 23.3)) * (1 - prog(t, 23.3, 25)), s: 1.55 });
+  } else seal(S, { a: 0 });
+  show($("shaft"), 0.9 * out(prog(t, 23.05, 23.4)) * (1 - prog(t, 23.6, 27.5)), `scaleX(${1 + 6 * prog(t, 23.1, 24.4)})`);
+  statement("st1", t, 2.0, 5.8);
+
+  // 2/3. The ledger, the key, every receipt torn open.
+  const L = life(t, 6.4, 20.0, 1.6, 0.8);
+  show($("ledger"), L);
+  show($("scrim"), L);
+  if (L > 0) {
+    const drift = prog(t, 6, 20);
+    $("plane").style.transform = `rotateX(${lerp(58, 50, ease(drift))}deg) rotateZ(${lerp(-10, -6, drift)}deg) translateY(${lerp(140, -40, drift)}px) translateZ(${lerp(-200, 60, ease(drift))}px)`;
+    cards.forEach((c, i) => {
+      const k = out(prog(t, 6.6 + c.d * 0.18, 7.6 + c.d * 0.18));
+      c.el.style.opacity = k.toFixed(3);
+      const tear = out(prog(t, 15.9 + c.d * 0.07, 16.5 + c.d * 0.07));
+      c.bars.forEach((b) => (b.style.transform = `scaleX(${1 - tear})`, b.style.transformOrigin = "right center"));
+      c.el.classList.toggle("open", tear > 0.5);
+      c.stamp.style.opacity = (1 - tear).toFixed(3);
+      c.stamp.style.transform = `translateY(${tear * 40}px) rotate(${tear * 40}deg)`;
+    });
+  }
+  statement("st2", t, 7.4, 12.6);
+  const keyIn = out(prog(t, 14.0, 15.6)), turn = ease(prog(t, 15.5, 16.0));
+  show($("key"), keyIn * (1 - prog(t, 18.6, 19.6)), `translate(${lerp(-900, 0, keyIn)}px, ${lerp(120, 0, keyIn)}px) rotate(${lerp(-25, 0, keyIn) + turn * 90}deg)`);
+  statement("st3a", t, 13.6, 19.8, 0.07);
+  statement("st3b", t, 15.0, 19.8, 0.09);
+
+  // 4. Title.
+  const ti = out(prog(t, 23.5, 24.6));
+  show($("title"), ti * (1 - prog(t, 28.2, 29.0)), `translateY(${(1 - ti) * 30}px) scale(${lerp(0.94, 1, ti) + 0.02 * prog(t, 24.6, 29)})`);
+  $("title").style.filter = `blur(${((1 - ti) * 14).toFixed(1)}px)`;
+  const tg = out(prog(t, 24.6, 25.5));
+  show($("tagline"), tg * (1 - prog(t, 28.2, 29.0)), `translateY(${(1 - tg) * 20}px)`);
+
+  // 5. The check, on the real site.
+  const B = life(t, 29.2, 48.2, 1.4, 0.9), bin = out(prog(t, 29.2, 30.8)), bdrift = prog(t, 29.2, 48);
+  show($("stage"), B);
+  if (B > 0) {
+    $("browser").style.transform = `translateY(${(1 - bin) * 260}px) rotateY(${lerp(-16, -7, ease(bdrift))}deg) rotateX(${lerp(8, 2, bin)}deg) scale(${lerp(0.94, 1.03, bdrift)})`;
+    const img = $("footage"), src = footageAt(t - 29.9);
+    if (img.getAttribute("src") !== src) { img.setAttribute("src", src); await img.decode().catch(() => {}); }
+    show($("s5head"), out(prog(t, 30.2, 31.2)), `translateY(${(1 - out(prog(t, 30.2, 31.2))) * 16}px)`);
+    [...$("callouts").children].forEach((c, i) => {
+      const k = out(prog(t, [37.7, 39.3, 41.0, 42.8][i], [37.7, 39.3, 41.0, 42.8][i] + 0.8));
+      c.style.opacity = k.toFixed(3); c.style.transform = `translateX(${(1 - k) * -40}px)`;
+      c.style.borderLeftColor = `rgba(244, 183, 40, ${0.25 + 0.6 * k})`;
+    });
+  }
+
+  // 6. Forgery.
+  const F = life(t, 48.2, 55, 0.8, 0.7);
+  show($("amount"), F, `scale(${lerp(0.96, 1.02, prog(t, 48.2, 55))})`);
+  if (F > 0) {
+    const sc = prog(t, 49.5, 50.3);
+    seed = Math.floor(t * 30) + 11;
+    let d = "0.001";
+    if (sc > 0 && sc < 1) d = [...d].map((ch) => (ch === "." ? "." : String(Math.floor(rand() * 10)))).join("");
+    if (sc >= 1) d = "1.000";
+    $("digits").textContent = d;
+    $("digits").style.color = sc >= 1 ? "#f4f1e9" : "#f4f1e9";
+  }
+  const st = out(prog(t, 50.6, 51.0));
+  show($("strike"), F, `scaleX(${st})`);
+  show($("rejected"), F * out(prog(t, 51.0, 51.5)), `translateY(${(1 - out(prog(t, 51.0, 51.5))) * 14}px)`);
+  show($("rejected2"), F * out(prog(t, 51.5, 52.3)), `translateY(${(1 - out(prog(t, 51.5, 52.3))) * 14}px)`);
+
+  // 7. Every pool.
+  const P = life(t, 55.0, 61.6, 1.0, 0.8);
+  pools.forEach((p, i) => {
+    const on = out(prog(t, [56.0, 57.4, 58.8][i], [56.0, 57.4, 58.8][i] + 0.5));
+    const enter = out(prog(t, 55.0 + i * 0.15, 56.2 + i * 0.15));
+    seal(p, { x: (i - 1) * 168, y: 22, z: lerp(-200, 0, enter), s: 0.9, a: P * enter, rx: 0.1, ry: 0.35 * Math.sin(t * 0.8 + i), glow: 0.35 * on * (1 - 0.6 * prog(t, [56.5, 57.9, 59.3][i], 61)) });
+    show($("p" + i), P * on, `translateY(${(1 - on) * 14}px)`);
+  });
+  statement("st7", t, 59.3, 61.6);
+
+  // 8. For builders.
+  const C = life(t, 61.6, 67.6, 0.8, 0.6), cin = out(prog(t, 61.6, 62.6));
+  show($("code"), C, `translateY(${(1 - cin) * 60}px) rotateX(${(1 - cin) * 10}deg)`);
+  if (C > 0) $("codepre").innerHTML = typed(t, 62.3);
+  [...$("chips").children].forEach((c, i) => { const k = out(prog(t, 64.2 + i * 0.35, 64.9 + i * 0.35)); c.style.opacity = (k * C).toFixed(3); c.style.transform = `translateY(${(1 - k) * 16}px)`; });
+
+  // 9. The facts.
+  const Fa = life(t, 67.6, 73.1, 0.6, 0.7);
+  [0, 1, 2].forEach((i) => {
+    const k = out(prog(t, 67.8 + i * 0.6, 68.6 + i * 0.6));
+    show($("f" + i), Fa * k, `translateY(${(1 - k) * 30}px)`);
+    const n = $("f" + i).querySelector(".n");
+    const target = [1, 0, 16][i];
+    n.textContent = String(Math.round(target * out(prog(t, 67.8 + i * 0.6, 68.9 + i * 0.6))));
+  });
+
+  // 10. End.
+  const E = life(t, 73.2, 80, 1.0, 0.01), ein = out(prog(t, 73.2, 74.6));
+  seal(endSeal, { y: 92, z: lerp(-200, 0, ein), s: 0.78, a: E * ein, rx: 0.08, ry: 0.4 * Math.sin((t - 73) * 0.7) });
+  show($("endname"), E * out(prog(t, 73.8, 74.8)), `translateY(${(1 - out(prog(t, 73.8, 74.8))) * 24}px)`);
+  show($("endline"), E * out(prog(t, 74.5, 75.4)));
+  show($("endurl"), E * out(prog(t, 75.2, 76.0)));
+  show($("endtrack"), E * out(prog(t, 75.6, 76.4)));
+  $("black").style.opacity = (prog(t, 0, 0.0001) < 1 ? 1 : 0) || ease(prog(t, 79.0, 80)).toFixed(3);
+
+  renderer.render(scene, camera);
+};
+
+await Promise.all([document.fonts.ready, loadFootage()]);
+window.ready = true;
+</script>
+</body>
+</html>

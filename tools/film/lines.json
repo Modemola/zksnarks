@@ -1,0 +1,14 @@
+[
+ ["v01", "Every shielded Zcash payment is sealed."],
+ ["v02", "Private, by default."],
+ ["v03", "But to prove one payment today, you hand over a viewing key. And it opens everything."],
+ ["v04", "Unseal changes that."],
+ ["v05", "Prove one payment. Keep the rest sealed."],
+ ["v06", "Share a receipt link. Anyone can check it in their browser, against the live Zcash chain."],
+ ["v07", "It rebuilds the transaction, opens exactly one payment, and matches it to the commitment on chain."],
+ ["v08", "Change a single detail, and it fails."],
+ ["v09", "Orchard. Ironwood. Sapling."],
+ ["v10", "A Rust library, WebAssembly, and a command line tool."],
+ ["v11", "No keys shared. Nothing else revealed."],
+ ["v12", "Unseal. Live on Zcash mainnet."]
+]
