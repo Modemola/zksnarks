@@ -66,4 +66,5 @@ checks.
 
 - Repository: <https://github.com/Modemola/zksnarks>
 - Live site: <https://unseall.vercel.app>
-- Video: [docs/video/unseal-demo.mp4](../video/unseal-demo.mp4)
+- Launch film (46 seconds): [docs/video/unseal-film.mp4](../video/unseal-film.mp4)
+- Demo video (two minutes, the full walkthrough): [docs/video/unseal-demo.mp4](../video/unseal-demo.mp4)
