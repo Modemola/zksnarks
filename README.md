@@ -8,6 +8,10 @@ Built for Zecathon, track 04: Core & Tooling. Live on Zcash mainnet:
 **<https://unseall.vercel.app>** · 45 second [launch film](docs/video/unseal-film.mp4) · two minute [demo video](docs/video/unseal-demo.mp4) · five minute walkthrough in
 [docs/JUDGES.md](docs/JUDGES.md).
 
+The project as submitted, at the Oct 28 deadline, is the
+[`zecathon-submission`](https://github.com/Modemola/zksnarks/tree/zecathon-submission) branch; later commits add the
+launch film and this guide.
+
 ## How to test
 
 No wallet, no account, no faucet and no install: the demo data is real mainnet payments, and the demo wallet's view only
